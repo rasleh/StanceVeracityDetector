@@ -23,6 +23,8 @@ test_dast_path = os.path.join(current_path,
 benchmark_path = os.path.join(current_path, Path('../../../benchmarking/'))
 
 # TODO: Implement full support for bi-directionality
+# TODO: Refactor and split file; one class-file containing only LSTM logic, one script-file containing e.g. benchmarking,
+#  saving features and command-line client
 # LSTM architecture with variable dimensions in the form of number of LSTM layers and dimensions, ReLU layers and
 # dimensions, and the option of making the model bi-directional.
 # Inspired by https://discuss.pytorch.org/t/example-of-many-to-one-lstm/1728/4 and

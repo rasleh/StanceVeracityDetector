@@ -19,7 +19,8 @@ dast_veracity_path_no_timestamps = os.path.join(current_path, Path('../../../dat
 # lambda which flattens list of lists
 flatten = lambda l: [item for sublist in l for item in sublist]
 
-
+# TODO: Refactor and split file; one class-file containing only HMM logic, one script-file containing e.g. benchmarking,
+#  saving features and command-line client
 class HMM(BaseEstimator):
     """Single spaced hidden markov model classifier."""
 
