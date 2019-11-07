@@ -99,19 +99,11 @@ class DastAnnotation(Annotation):
         self.created = datetime.datetime.strptime(comment_json["created"], '%Y-%m-%dT%H:%M:%S')
 
     def filter_text_ref(self, text):
-        """ filters text of all annotations to replace reddit quotes with 'refrefref'
-
-        :param text: text of a given reddit comment
-        :return: comment text with references substituted for the reference tag
-        """
+        """filters text of all annotations to replace references with the tag 'refrefref'"""
         return regex_ref.sub(ref_tag, text)
 
     def filter_text_urls(self, text):
-        """ filters text of all annotations to replace 'URLURLURL'
-
-        :param text: text of a given reddit comment
-        :return: comment text with URLs substituted for the URL tag
-        """
+        """filters text of all annotations to replace urls with the tag'URLURLURL'"""
         return regex_url.sub(url_tag, text)
 
 

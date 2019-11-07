@@ -5,12 +5,41 @@ from afinn import Afinn
 from src.feature_extraction import word_embeddings
 from src.feature_extraction.polyglot_pos import pos_tags_occurrence
 
-# Module for extracting features from comment annotations
+#
 
 afinn = Afinn(language='da', emoticons=True)
 
 
 class FeatureExtractor:
+    """
+    Class for extracting features from comment annotations
+
+    Attributes
+    dataset : DataSet
+        an object of the DataSet class, containing data to be analyzed
+    bow_words : set
+        a set containing all words in the dataset
+    sdqc_to_int : dict
+        dictionary for translating SDQC labels to ints
+
+    Methods
+    create_feature_vectors(data)
+        creates feature vectors by calling the create_feature_vector() method for each data point, while checking
+        for null values
+    create_feature_vector(comment, dataset, sdqc_parent=False, text=False, lexicon=False, sentiment=False,
+                              pos=False, wembs=False, lstm_wembs=False)
+        creates a feature vector of the features specified as input and returns this, along with the ID of the comment
+        and its SDQC value
+    text_features(text, tokens)
+        extracts text-based features from a given text
+    special_words_in_text(tokens, text)
+        returns the count of a number of special words in the text, normalized across the full dataset
+    count_lexicon_occurrences(words, lexicon)
+        returns the number of occurrences of words in a given lexicon found in a given text
+    normalize(x_i, prop)
+        normalizes a value using the full dataset
+    """
+
     def __init__(self, dataset):
         word_embeddings.load_saved_word_embeddings()
         # using passed annotations if not testing
@@ -26,6 +55,12 @@ class FeatureExtractor:
 
     def create_feature_vectors(self, data, dataset, sdqc_parent=False, text=False, lexicon=False, sentiment=False, pos=False,
                                wembs=False, lstm_wembs=False):
+        """
+        Creates feature vectors by calling the create_feature_vector() method for each data point, while checking for
+        null values. Parameters described in detail in create_feature_vector
+
+        :return: an array of feature vectors, with empty feature vectors removed
+        """
         feature_vectors = []
 
         for annotation in data:
@@ -37,9 +72,24 @@ class FeatureExtractor:
             feature_vectors.append(instance)
         return feature_vectors
 
-    # Extracts features from comment annotation and extends the different kind of features to eachother.
     def create_feature_vector(self, comment, dataset, sdqc_parent=False, text=False, lexicon=False, sentiment=False,
                               pos=False, wembs=False, lstm_wembs=False):
+        """
+
+        :param comment: a single object of the Annotation class
+        :param dataset: an object of the DataSet class
+        :param sdqc_parent: whether the SDQC value of the parent comment in the conversation tree should be included as
+        feature
+        :param text: whether a number of textual features should be included, see the text_features method
+        :param lexicon: whether a number of lexicon features should be included, see the special_words_in_text method
+        :param sentiment: whether the sentiment of the text should be included as a feature
+        :param pos: whether the POS tags of words should be included as features
+        :param wembs: whether cosine similarity between word embeddings should be used as features
+        :param lstm_wembs: whether word embeddings formatted for use in the stance_lstm model should be included as
+        features
+        :return: a tuple containing the ID of the annotation, the SDQC value of the annotation and a feature vector
+        """
+
         feature_vec = list()
         if sdqc_parent:
             feature_vec.append(self.sdqc_to_int[comment.sdqc_parent])
@@ -68,6 +118,12 @@ class FeatureExtractor:
         return comment.id, self.sdqc_to_int[comment.sdqc_submission], feature_vec
 
     def text_features(self, text, tokens):
+        """
+        
+        :param text:
+        :param tokens:
+        :return:
+        """
         # **Binary occurrence features**
         period = int('.' in text)
         e_mark = int('!' in text)
