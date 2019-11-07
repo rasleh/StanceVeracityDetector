@@ -22,7 +22,7 @@ test_dast_path = os.path.join(current_path,
                               Path('../../../data/datasets/dast/preprocessed/stance/pure_lstm_5g.csv'))
 benchmark_path = os.path.join(current_path, Path('../../../benchmarking/'))
 
-
+# TODO: Implement full support for bi-directionality
 # LSTM architecture with variable dimensions in the form of number of LSTM layers and dimensions, ReLU layers and
 # dimensions, and the option of making the model bi-directional.
 # Inspired by https://discuss.pytorch.org/t/example-of-many-to-one-lstm/1728/4 and
@@ -208,7 +208,7 @@ def main(argv):
                                                  'will be set to defaults, if none is entered')
     parser.add_argument('-ll', '--lstm_layers', default=3, help='Number of LSTM layers in model')
     parser.add_argument('-ld', '--lstm_dimensions', default=200, help='Number of LSTM dimensions in each layer')
-    parser.add_argument('-rl', '--relu_layers', default=1, help='Number of ReLU layers in model')
+    parser.add_argument('-rl', '--relu_layers', default=1, help='Number of linear layers with ReLU activation function in model')
     parser.add_argument('-rd', '--relu_dimensions', default=50, help='Number of ReLU dimensions in each layer')
     parser.add_argument('-me', '--max_epochs', default=200, help='Maximal number of epocsh in training')
     parser.add_argument('-bd', '--bi_directional', default=False, help='Make model bi-directional')

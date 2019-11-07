@@ -105,7 +105,7 @@ if __name__ == "__main__":
                                                  'LSTM stance model is currently only compatible with lstm_wembs.')
     parser.add_argument('-db', '--database', default='dast', help='Database type, either \'twitter\' or \'dast\'')
     parser.add_argument('-dp', '--data_path', default=False, help='Path to raw data')
-    parser.add_argument('-ss', '--sub_sample', default=False,
+    parser.add_argument('-ss', '--sub_sample', default=True,
                         help='Implement sub-sampling by removing conversation branches of only "commenting" labels')
     parser.add_argument('-sp', '--sdqc_parent', default=False, help='Include sdqc_parent as feature?')
     parser.add_argument('-tf', '--text_features', default=False, help='Include textual features?')
