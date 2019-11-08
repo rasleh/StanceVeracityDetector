@@ -21,7 +21,27 @@ twitter_data_path = os.path.join(current_path, Path('../../data/datasets/twitter
 dast_data_path = os.path.join(current_path, Path('../../data/datasets/dast/raw/dataset/'))
 
 
+"""
+Script for loading two machine learning models; one for stance detection and one for veracity determination, predicting 
+stance for a dataset of comments in a branch structure and, based on those stance predictions, determining the veracity 
+of the comment at the root of each branch.
+
+Methods
+find_early_late(branch_features, dataset)
+    goes through each datapoint in a dataset, finding the earliest and latest creation date for data points
+predict_stance(feature_vector, lstm_clf)
+    predicts the stance of a datapoint given the datapoint's feature vector, using a given classifier
+"""
+
+
 def find_early_late(branch_features, dataset):
+    """
+    Finds the earliest and latest creation dates for datapoints in a dataset
+
+    :param branch_features: an array of features, with the ID of the comment at index [0]
+    :param dataset: a dataset of comments of the DataSet class
+    :return: the earliest and latest creation times of datapoints in the dataset
+    """
     latest = datetime.datetime.min
     earliest = datetime.datetime.max
 
@@ -35,12 +55,19 @@ def find_early_late(branch_features, dataset):
     return earliest, latest
 
 
-def predict_stance(feature_vector, lstm_clf):
+def predict_stance(feature_vector, clf):
+    """
+    Predicts the stance in a given feature vector, using the classifier passed as argument, returning these as an array
+
+    :param feature_vector: an array of features
+    :param clf: a stance detection classifier
+    :return: array of class predictions
+    """
     # Exclude first two parts of vector; text ID and text label
     vector = feature_vector[2:]
     embs = []
     for emb in vector:
-        if lstm_clf and type(emb) is list:
+        if clf and type(emb) is list:
             # Flatten vector further to allow use of LSTM model
             for obj in emb:
                 embs.extend(obj)
@@ -48,12 +75,21 @@ def predict_stance(feature_vector, lstm_clf):
             embs.extend(emb)
 
     # Get model prediction
-    label_scores = lstm_clf(torch.tensor(embs))
+    label_scores = clf(torch.tensor(embs))
     predicted = [torch.argmax(label_scores.data, dim=1).item()]
     return predicted
 
 
 def main(argv):
+    """
+    Script main method, which loads two machine learning models, performing stance detection and subsequent veracity
+    determination for a dataset of branches using these models, and printing the results.
+
+    See project README for more in-depth description of command-line interfaces.
+
+    :param argv: user-specified arguments parsed from command line.
+    """
+
     parser = argparse.ArgumentParser(description='Performing veracity prediction on new data, using pre-trained models.'
                                                  'Defaults supplied for all parameters.')
     parser.add_argument('-smp', '--stance_model_path', default=stance_lstm_model,
