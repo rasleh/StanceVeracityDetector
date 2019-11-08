@@ -103,29 +103,3 @@ def load_veracity(path, unverified_cast):
             data.append((int(veracity), [[float(y) for y in x.split(', ')] for x in feature_vector]))
     print('Completed data load')
     return data
-
-
-# import re
-# from nltk import word_tokenize
-# from feature_extraction.word_embeddings import load_saved_word_embeddings
-# punctuation = re.compile('[^a-zA-ZæøåÆØÅ0-9]')
-#
-# data = load_raw_dast('../data/datasets/dast/raw/dataset/')
-# tokens = set()
-# word_embs = load_saved_word_embeddings()
-# words_in_vocab = 0
-#
-# for tree in data:
-#     for branch in tree[1:]:
-#         for comment in branch:
-#             tokens = []
-#             text_tokens = word_tokenize(comment['comment']['text'].lower(), language='danish')
-#             for token in text_tokens:
-#                 if not punctuation.match(token):
-#                     tokens.append(token)
-#
-# for token in tokens:
-#     if token in word_embs:
-#         words_in_vocab += 1
-#
-# print('Coverage is ', words_in_vocab/len(tokens))

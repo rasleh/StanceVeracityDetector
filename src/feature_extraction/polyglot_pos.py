@@ -32,9 +32,18 @@ tag_set = {
     "X": "other"
 }
 N = 17  # length of tag set
-
+"""
+Script containing functions for extracting POS tags for a given text or corpus using the Polyglot POS tagger 
+"""
 
 def format_tag_corpus(corpus_file, output_file):
+    """
+    Converts a text file at a given input, converts each line into a Polyglot Text object, and extracts POS tags for
+    that line, writing it to a given output file.
+
+    :param corpus_file: a corpus file to be converted into POS tags
+    :param output_file: the out file which will contain the generated POS tags
+    """
     with open(corpus_file, 'r', encoding='utf-8') as f, open(output_file, 'w+', encoding='utf-8') as out:
         for line in f.readlines():
             text = Text(line, hint_language_code='da')
@@ -45,6 +54,12 @@ def format_tag_corpus(corpus_file, output_file):
 
 
 def pos_tags(text):
+    """
+    Extracts POS tags from a string and returns these as an array
+
+    :param text: str object to be ocnverted to POS tags
+    :return: an array of POS tags extracted from the text
+    """
     text = Text(text, hint_language_code='da')
     pos_tags = []
     for _, tag in text.pos_tags:
@@ -53,6 +68,13 @@ def pos_tags(text):
 
 
 def pos_tags_occurrence(text):
+    """
+    Returns the occurrence of each POS tag in a str text
+
+    :param text: a str object to be converted to POS tags
+    :return: an array sized based on the number of used POS tags in tag_set, containing at each index the count of
+    occurrences of the POS tag corresponding to that index in the tag_set
+    """
     tags = pos_tags(text)
     res = [0] * N
     for i, tag in enumerate(tag_set.keys()):

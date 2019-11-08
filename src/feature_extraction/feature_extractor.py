@@ -56,8 +56,8 @@ class FeatureExtractor:
     def create_feature_vectors(self, data, dataset, sdqc_parent=False, text=False, lexicon=False, sentiment=False, pos=False,
                                wembs=False, lstm_wembs=False):
         """
-        Creates feature vectors by calling the create_feature_vector() method for each data point, while checking for
-        null values. Parameters described in detail in create_feature_vector
+        Creates feature vectors based on user input by calling the create_feature_vector() method for each data point,
+        while checking for null values. Parameters described in detail in create_feature_vector
 
         :return: an array of feature vectors, with empty feature vectors removed
         """
@@ -75,6 +75,8 @@ class FeatureExtractor:
     def create_feature_vector(self, comment, dataset, sdqc_parent=False, text=False, lexicon=False, sentiment=False,
                               pos=False, wembs=False, lstm_wembs=False):
         """
+        Creates a feature vector based on user input, and returns text ID, text SDQC value and a the feature vector as
+        a tuple.
 
         :param comment: a single object of the Annotation class
         :param dataset: an object of the DataSet class
@@ -119,10 +121,15 @@ class FeatureExtractor:
 
     def text_features(self, text, tokens):
         """
-        
-        :param text:
-        :param tokens:
-        :return:
+        Extracts text features from a text, and its NLTK token representation.
+
+        :param text: a text string
+        :param tokens: a text string converted to NLTK tokens
+        :return: an array containing textual features.
+        Binary occurrence of: periods, exclamation marks and questions and question marks,
+        Normalized count of: text length, number of URLs, max capital letter sequence, number of triple dots, number of
+        questions and question marks, exclamation marks and the ratio of capital to non-capital letters
+        Count of: words, average word length and max capital letter sequence
         """
         # **Binary occurrence features**
         period = int('.' in text)
@@ -153,6 +160,15 @@ class FeatureExtractor:
                 e_mark_count, cap_ratio, txt_len, tokens_len, avg_word_len, cap_sequence_max_len]
 
     def special_words_in_text(self, tokens, text):
+        """
+        Uses a number of lexicons to extract normalized word counts for a given text, for the number of words from the
+        text present in the lexicons
+
+        :param tokens: NLTK tokenized text
+        :param text: text as str representation
+        :return: an array containing normalized number of swear words, normalized number of negation words, normalized
+        number of positive smileys and normalized number of negative smileys
+        """
         swear_count = self.count_lexicon_occurence(tokens, self.dataset.swear_words)
         negation_count = self.count_lexicon_occurence(tokens, self.dataset.negation_words)
         positive_smiley_count = self.count_lexicon_occurence(text.split(), self.dataset.positive_smileys)
@@ -167,9 +183,11 @@ class FeatureExtractor:
     ### HELPER METHODS ###
     # Counts the amount of words which appear in the lexicon
     def count_lexicon_occurence(self, words, lexion):
+        """Counts the number of words in a given text present in a given lexicon"""
         return sum([1 if word in lexion else 0 for word in words])
 
     def normalize(self, x_i, prop):
+        """Normalizes a count for a given property using the max and min count for the property in the dataset"""
         if x_i == 0:
             return 0
         min_x = self.dataset.get_min(prop)
