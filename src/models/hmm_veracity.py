@@ -22,13 +22,40 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 # TODO: Refactor and split file; one class-file containing only HMM logic, one script-file containing e.g. benchmarking,
 #  saving features and command-line client
 class HMM(BaseEstimator):
-    """Single spaced hidden markov model classifier."""
+    """Single spaced hidden markov model classifier.
+
+    Attributes
+    models : dict
+        a dictionary connecting class labels to an HMM model calculating probability for that class
+    components : int
+        number of states in the model
+
+    Methods
+    fit(data)
+        Initializes an HMM for each class label in data, and estimates model parameters to optimally identify correct
+        classes
+    predict(data)
+        Predicts the label of data points in the given data using a pre-trained HMM for each class label
+    test(data)
+        Predicts class labels using the predict(function), compares these with actual class labels and prints and
+        returns the results
+    """
 
     def __init__(self, components):
         self.components = components
         self.models = dict()
 
     def fit(self, data):
+        """
+        Estimates model parameters by initializing a Gaussian HMM for each class label and fitting data for that model
+
+        :param data: matrix with the dimensions [number of datapoints][2][1 or 2]
+        In the first matrix dimension, each datapoint will be stored. In the second dimension, at index 0, the veracity
+        label of a given rumour will be stored. At index 1, the features will be stored. The third dimension will be of
+        size 1 or 2, depending on whether only SDQC labels are used for the prediction, or timestamps are also included
+        as features.
+        :return: the HMM model, with sub-models fitted for each data label
+        """
         classes = dict()
 
         feature_count = len(data[1][1][0])
@@ -48,6 +75,15 @@ class HMM(BaseEstimator):
         return self
 
     def predict(self, data):
+        """
+        Finds most likely labels, using the pre-trained models found in self.models
+
+        :param data: matrix with the dimensions [number of datapoints][1 or 2]
+        In the first matrix dimension, each datapoint will be stored. The second dimension will be of
+        size 1 or 2, depending on whether only SDQC labels are used for the prediction, or timestamps are also included
+        as features.
+        :return: an array of class predictions
+        """
         predicts = []
         for branch in data:
             branch_length = len(branch)
@@ -65,6 +101,20 @@ class HMM(BaseEstimator):
         return predicts
 
     def test(self, data, unverified_cast):
+        """
+        Finds model predictions using the predict() function, and compares results with the actual labels, printing
+        results while also returning these as output. Needs indication of how Unverified rumours have been handled;
+        cast as either True or False, or left as unverified to turn the task into 3-class prediction.
+
+        :param data: matrix with the dimensions [number of datapoints][2][1 or 2]
+        In the first matrix dimension, each datapoint will be stored. In the second dimension, at index 0, the veracity
+        label of a given rumour will be stored. At index 1, the features will be stored. The third dimension will be of
+        size 1 or 2, depending on whether only SDQC labels are used for the prediction, or timestamps are also included
+        as features.
+        :param unverified_cast: how unverified rumours have been handled; is 'none' if they have not been cast as
+        another class, or alternatively 'true' or 'false'
+        :return:
+        """
         feature_vectors = [x[1] for x in data]
         predicted_labels = self.predict(feature_vectors)
         actual_labels = [x[0] for x in data]
@@ -87,22 +137,30 @@ class HMM(BaseEstimator):
 
 
 def split_test_train(data, test_partition):
+    """
+    Splits a dataset into train and test partitions based on user input
+
+    :param data: an array of datapoints
+    :param test_partition: how much of the data should be partitioned for the test split, all other data is used for
+    training
+    :return: two arrays containing datapoints
+    """
     shuffle(data)
     test_data = data[:int(len(data) * test_partition)]
     train_data = data[int(len(data) * test_partition):]
     return test_data, train_data
 
 
-def run_benchmark(components, data_path, unverified_cast):
-    data = data_loader.load_veracity(data_path, unverified_cast)
-    test_data, train_data = split_test_train(data, 0.2)
-    model = HMM(components)
-    model.fit(train_data)
-    class_acc, acc, f1_macro, f1_micro = model.test(test_data, unverified_cast)
-    return model, f1_macro
-
-
 def main(argv):
+    """
+    Client for initializing, training and testing a HMM model for veracity determination, and saving this model to a
+    joblib file. Default values are supplied for all arguments.
+
+    See project README for more in-depth description of command-line interfaces.
+
+    :param argv: user-specified arguments parsed from command line.
+    """
+
     parser = argparse.ArgumentParser(description='Training and testing HMM model for veracity prediction')
     parser.add_argument('-uc', '--unverified_cast', default='false',
                         help='Whether, and how, unverified rumours are cast, either \'true\', \'false\' or \'none\'')
@@ -126,7 +184,11 @@ def main(argv):
             'Please specify whether and how unverified rumours should be cast, either \'true\', \'false\' or \'none\'')
         return
 
-    model, f1_macro = run_benchmark(2, args.data_path, args.unverified_cast)
+    data = data_loader.load_veracity(args.data_path, args.unverified_cast)
+    test_data, train_data = split_test_train(data, 0.2)
+    model = HMM(2)
+    model.fit(train_data)
+    class_acc, acc, f1_macro, f1_micro = model.test(test_data, args.unverified_cast)
 
     if args.save_model:
         if not args.model_name:

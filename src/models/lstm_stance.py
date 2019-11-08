@@ -25,11 +25,44 @@ benchmark_path = os.path.join(current_path, Path('../../../benchmarking/'))
 # TODO: Implement full support for bi-directionality
 # TODO: Refactor and split file; one class-file containing only LSTM logic, one script-file containing e.g. benchmarking,
 #  saving features and command-line client
-# LSTM architecture with variable dimensions in the form of number of LSTM layers and dimensions, ReLU layers and
-# dimensions, and the option of making the model bi-directional.
-# Inspired by https://discuss.pytorch.org/t/example-of-many-to-one-lstm/1728/4 and
-# https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
 class StanceLSTM(nn.Module):
+    """
+    LSTM architecture with variable dimensions in the form of number of LSTM layers and dimensions, ReLU layers and
+    dimensions, and the option of making the model bi-directional.
+    Inspired by https://discuss.pytorch.org/t/example-of-many-to-one-lstm/1728/4 and
+    https://pytorch.org/tutorials/beginner/nlp/sequence_models_tutorial.html
+
+    Attributes
+    lstm_layers : int
+        the number of LSTM layers to be used in the model
+    lstm_dim : int
+        the number of dimensions within each LSTM layer
+    hidden_layers : int
+        the number of linear hidden layers with ReLU activation functions
+    hidden_dim : int
+        the number of dimensions in each hidden layer
+    emb_dim : int
+        the size of the embeddings used in the data
+    bi_directional : boolean
+        whether the model should be bi-directional; bi-directionality is still not fully supported
+    dropout = boolean
+        whether the model should apply dropout
+    lstm : nn.LSTM object
+        an nn.LSTM object initialized using user input, containing a user specified number of layers and dimensions
+    dense_layers : array
+        an array of the hidden layers and, if so specified by the user, followed by a dropout layer
+    hidden2label : Sequential object
+        a torch object sequentializing the contents of dense_layers
+    hidden : torch.tensor object
+        the hidden state of the LSTM model, initialized by the init_hidden() function
+
+    Methods
+    init_hidden()
+        initializes the hidden state of the model as torch tensors containing zeroes
+    forward()
+        performs a forward pass over the model layers
+    """
+
     def __init__(self, lstm_layers, lstm_dim, hidden_layers, hidden_dim,
                  emb_dim, bi_directional, dropout=True):
         super(StanceLSTM, self).__init__()
@@ -57,24 +90,32 @@ class StanceLSTM(nn.Module):
         # initialize state
         self.hidden = self.init_hidden()
 
-    # Initializes an empty hidden state with axes semantics (hidden_layers, minibatch_size, hidden_dim)
     def init_hidden(self):
+        """Initializes an empty hidden state with axes semantics (hidden_layers, minibatch_size, hidden_dim)"""
         return torch.zeros(self.lstm_layers, 1, self.hidden_dim), torch.zeros(self.lstm_layers, 1, self.hidden_dim)
 
-    # A forward pass over the full model, running the text through deep learning layers followed by the hidden layers,
-    # returning class probabilities as 'label_scores'
     def forward(self, text):
+        """A forward pass over the full model, running the text through deep learning layers followed by the hidden layers,
+        returning class probabilities as 'label_scores'"""
         lstm_out, self.hidden = self.lstm(text.view(len(text), 1, 300))
         label_space = self.hidden2label(lstm_out[-1])
         label_scores = f.log_softmax(label_space, dim=1)
         return label_scores
 
 
-# Train a given Stance_LSTM model for a number of epochs, using a given loss function and optimizer. The function takes
-# data in list form, each element containing text id, a label and a feature vector. The feature vector contains two
-# elements; word embeddings for a source text in a conversation branch, followed by the text for which stance is to be
-# determined, towards the source text. Both on the format [text length][embedding size]
 def train(data, model, loss_function, optimizer, epochs):
+    """
+    Train a given Stance_LSTM model for a number of epochs, using a given loss function and optimizer. The function takes
+    data in list form, each element containing text id, a label and a feature vector. The feature vector contains two
+    elements; word embeddings for a source text in a conversation branch, followed by the text for which stance is to be
+    determined, towards the source text. Both on the format [text length][embedding size]
+
+    :param data: array of training data, at each index containing a tuple; (ID, actual label, [feature vector])
+    :param model: a StanceLSTM object to be trained
+    :param loss_function: the applied loss function, expected to be of a torch.nn class
+    :param optimizer: the applied optimizer, expected to be of a torch.optim class
+    :param epochs: the number of epochs for which the model should be trained
+    """
     epoch_loss = 0.0
     for epoch in range(epochs):
         for text_id, label, feature_vector in data:
@@ -102,11 +143,18 @@ def train(data, model, loss_function, optimizer, epochs):
         epoch_loss = 0
 
 
-# Tests a pre-trained model. The function takes data in list form, each element containing text id, a label and a
-# feature vector. The feature vector contains two  elements; word embeddings for a source text in a conversation branch,
-# followed by the text for which stance is to be determined, towards the source text. Both on the format
-# [text length][embedding size]
 def test(data, model):
+    """
+    Tests a pre-trained model. The function takes data in list form, each element containing text id, a label and a
+    feature vector. The feature vector contains two  elements; word embeddings for a source text in a conversation branch,
+    followed by the text for which stance is to be determined, towards the source text. Both on the format
+    [text length][embedding size]
+
+    :param data: array of test data, at each index containing a tuple; (ID, actual label, [feature vector])
+    :param model: a StanceLSTM object to be tested
+    :return: accuracy for each class, overall accuracy, F1 micro and macro averaged and a confusion matrix over
+    classification
+    """
     model.eval()
     predicted_labels = []
     actual_labels = []
@@ -139,6 +187,14 @@ def test(data, model):
 
 
 def split_test_train(data, test_partition):
+    """
+    Splits a dataset into train and test partitions based on user input
+
+    :param data: an array of datapoints
+    :param test_partition: how much of the data should be partitioned for the test split, all other data is used for
+    training
+    :return: two arrays containing datapoints
+    """
     shuffle(data)
     test_data = data[:int(len(data) * test_partition)]
     train_data = data[int(len(data) * test_partition):]
@@ -147,6 +203,17 @@ def split_test_train(data, test_partition):
 
 def run_specific_benchmark(lstm_layers, lstm_dim, hidden_layers, hidden_dim, max_epochs, bi_directional, out_file, data,
                            save_model=False, full_run=False):
+    """
+    Runs a benchmark using user-input hyperparameters, and saves the results to a file. For descriptions of lstm_layers,
+    lstm_dim, hidden_layers, hidden_dim and bi_directional, see the StanceLSTM class.
+
+    :param max_epochs: the maximum number of epochs for which the benchmark will run
+    :param out_file: the file to which the benchmark results should be written
+    :param data: array of data, at each index containing a tuple; (ID, actual label, [feature vector])
+    :param save_model: whether the trained and tested StanceLSTM model should be saved to a joblib file
+    :param full_run: whether the current benchmarking run is part of a full hyperparameter space search
+    :return: the StanceLSTM model with best performance
+    """
     # Split training and test data
     test_data, train_data = split_test_train(data, 0.2)
 
@@ -188,6 +255,12 @@ def run_specific_benchmark(lstm_layers, lstm_dim, hidden_layers, hidden_dim, max
 
 
 def run_full_benchmark(max_epochs):
+    """
+    Performs benchmarking for all of the hyperparameter combinations present in the arrays lstm_layers_var,
+    lstm_dims_var, relu_layers_var and relu_dims_var.
+
+    :param max_epochs: the maximum number of epochs for which a benchmark will run
+    """
     # All parameter combinations in the arrays below will be benchmarked
     lstm_layers_var = [1, 2, 3]
     lstm_dims_var = [50, 100, 200]
@@ -206,6 +279,15 @@ def run_full_benchmark(max_epochs):
 
 
 def main(argv):
+    """
+    Client for initializing, training and testing an LSTM model for stance detection, performing benchmarking, and
+    saving this model to a joblib file. Default values are supplied for all arguments.
+
+    See project README for more in-depth description of command-line interfaces.
+
+    :param argv: user-specified arguments parsed from command line.
+    """
+
     parser = argparse.ArgumentParser(description='Training and testing LSTM model for stance detection, all variables'
                                                  'will be set to defaults, if none is entered')
     parser.add_argument('-ll', '--lstm_layers', default=3, help='Number of LSTM layers in model')
