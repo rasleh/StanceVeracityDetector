@@ -89,29 +89,30 @@ def main(argv):
 
     :param argv: user-specified arguments parsed from command line.
     """
-
-    parser = argparse.ArgumentParser(description='Performing veracity prediction on new data, using pre-trained models.'
-                                                 'Defaults supplied for all parameters.')
+    parser = argparse.ArgumentParser()
     parser.add_argument('-smp', '--stance_model_path', default=stance_lstm_model,
-                        help='Path to pre-trained stance detection model')
+                               help='Path to pre-trained stance detection model')
     parser.add_argument('-vmp', '--veracity_model_path', default=None,
-                        help='Path to pre-trained veracity prediction model')
-    parser.add_argument('-dt', '--data_type', default='twitter',
-                        help='Type of data used for veracity prediction, either \'twitter\' or \'dast\'')
+                               help='Path to pre-trained veracity prediction model')
     parser.add_argument('-ts', '--timestamps', default=True,
                         help='Include normalized timestamps of comments as features?')
-    parser.add_argument('-dp', '--data_path', default=None, help='Path to data')
+
+    subparsers = parser.add_subparsers(help='Choose whether to use new or sored data for veracity preciction')
+
+    # Create parser for using new data for veracity prediction
+    new_parser = subparsers.add_parser('new', help='Using new data for veracity prediction')
+    new_parser.add_argument('-id', help='The ID of a tweet from the conversation, for which veracity will be determined')
+
+    # Create parser for using stored data for veracity prediction
+    stored_parser = subparsers.add_parser('stored', help='Using stored data for veracity prediction. Defauilts are'
+                                                         'supplied for all parameters')
+
+    stored_parser.add_argument('-dt', '--data_type', default='twitter',
+                        help='Type of data used for veracity prediction, either \'twitter\' or \'dast\'')
+
+    stored_parser.add_argument('-dp', '--data_path', default=None, help='Path to data')
 
     args = parser.parse_args(argv)
-
-    if args.data_path is None:
-        if args.data_type is 'twitter':
-            args.data_path = twitter_data_path
-        elif args.data_type is 'dast':
-            args.data_path = dast_data_path
-        else:
-            print('Defined data type not recognized')
-            return
 
     if args.veracity_model_path is None:
         if args.timestamps:
@@ -130,6 +131,21 @@ def main(argv):
 
     hmm_clf = load(args.veracity_model_path)
     lstm_clf = load(args.stance_model_path)
+
+    if args.stored:
+        if args.data_path is None:
+            if args.data_type is 'twitter':
+                args.data_path = twitter_data_path
+            elif args.data_type is 'dast':
+                args.data_path = dast_data_path
+            else:
+                print('Defined data type not recognized')
+                return
+
+    if args.new:
+        args.data_type = 'twitter'
+
+
 
     # TODO: Evaluate whether veracity should make use of pre-processed data, and data-loader class
     dataset, feature_vectors = preprocess(args.data_type, args.data_path, text=features['text'], lexicon=features['lexicon'],

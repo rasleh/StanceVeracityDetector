@@ -5,7 +5,7 @@ from datetime import date
 import configparser
 import tweepy
 
-
+# TODO: Make fetcher use absolute paths
 # TODO: Implement command-line client
 # Performs authentication necessary to access the Twitter API, using the credentials given in twitter.ini
 def authenticate():
@@ -23,7 +23,9 @@ def authenticate():
 
 
 def navigate_to_source(tweet_id):
-    parent = api.get_status(tweet_id).in_reply_to_status_id_str
+    tweet = api.get_status(tweet_id)
+    username = tweet.user.name
+    parent = tweet.in_reply_to_status_id_str
     while parent:
         print('Given tweet is not a root node - navigating to root node\n')
         tweet_id = parent
@@ -58,22 +60,28 @@ def identify_comments(tweet_id, username):
 def write_to_file(source_tweet_id):
     with open('tweet_data.txt', 'r+', encoding="UTF-8") as db_file:
         in_db = False
-        data = db_file.readlines()
-        if data is not None:
+        data = []
+        if db_file.read(1):
+            db_file.seek(0)
+            data = db_file.readlines()
             for i in range(len(data)):
                 if data[i].split('\t')[0] == source_tweet_id:
                     data[i] = source_tweet_id + '\t' + str(collected_tweets)
                     in_db = True
+
+            if not in_db:
+                data[-1] = data[-1] + '\n'
+
         if not in_db:
             data.append(source_tweet_id + '\t' + str(collected_tweets))
 
-        # TODO: Create new file, write to that, move it on top of old file
+        db_file.seek(0)
+        print(data)
+        for i in range(len(data)):
+            db_file.write(data[i])
 
-        for line in data:
-            db_file.write(line+'\n')
 
-
-def retrieve_conversation_thread(tweet_id):
+def retrieve_conversation_thread(tweet_id, write_out):
     source_tweet_id, source_username = navigate_to_source(tweet_id)
 
     # Collect source tweet, add to collected tweets and fill SDQC-related fields with placeholders
@@ -95,16 +103,20 @@ def retrieve_conversation_thread(tweet_id):
         collected_tweets[item_of_interest.id_str] = item_of_interest._json
         print(item_of_interest.id_str+"\t"+item_of_interest.full_text)
         identify_comments(item_of_interest.id_str, item_of_interest.user.screen_name)
+    if write_out:
+        # Save tweets in JSON format
+        write_to_file(source_tweet_id)
 
-    # Save tweets in JSON format
-    write_to_file(source_tweet_id)
+    return collected_tweets
 
 
-if __name__ == '__main__':
-    tweets_of_interest = deque()
-    collected_tweets = {}
-    api = authenticate()
+tweets_of_interest = deque()
+collected_tweets = {}
+api = authenticate()
+
+
+#if __name__ == '__main__':
 
     # retrieve_conversation_thread("1168771907036033024", "oestergaard")
-    retrieve_conversation_thread("1168845054569566208")
+    # retrieve_conversation_thread("1168845054569566208", True)
     # retrieve_conversation_thread("1169544969784320000", "Kristianthdahl")

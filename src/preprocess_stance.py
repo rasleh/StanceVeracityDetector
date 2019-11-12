@@ -20,22 +20,22 @@ structures can be found in the README at the project root.
 """
 
 
-def get_database_variables(database, data_path):
+def get_database_variables(database, data):
     """
     Switch function which generates variables based on which database type is entered as argument, currently supporting
     'dast' and 'twitter'. Defines raw data path, which class or child of DataSet to use and out path.
 
-    :param raw_data_path: full path to the raw data
+    :param data: either full path to the raw data or the raw data itself
     :param database: database type, currently supporting 'dast' and 'twitter'
     :return: three database-specific variables; raw data path, out path and which class or child class of DataSet to use
     """
 
-    if not data_path:
+    if not data:
         path_switch = {
             'dast': '../../data/datasets/dast/raw/dataset/',
             'twitter': '../../data/datasets/twitter/raw/loekke.txt'
         }
-        data_path = os.path.join(current_path, Path(path_switch.get(database)))
+        data = os.path.join(current_path, Path(path_switch.get(database)))
 
     dataset_switch = {
         'dast': DastDataset(),
@@ -49,7 +49,7 @@ def get_database_variables(database, data_path):
     }
     out_path = os.path.join(current_path, Path(out_path_switch.get(database)))
 
-    return data_path, dataset, out_path
+    return data, dataset, out_path
 
 
 def write_preprocessed(header_features, feature_vectors, out_path):
@@ -114,14 +114,14 @@ def get_branch_level_features(dataset, sdqc_parent, text, lexicon, sentiment, po
     return feature_vectors
 
 
-def preprocess(database, data_path=False, sub=False, sdqc_parent=False, text=False, lexicon=False, sentiment=False,
+def preprocess(database, data=False, sub=False, sdqc_parent=False, text=False, lexicon=False, sentiment=False,
                pos=False, wembs=False, lstm_wembs=False, write_out=False, out_file_name='preprocessed.csv'):
     """
     Loads raw data at a given data path, extracts features to be used for stance detection, formats the data, and
     returns the processed data. If so specified, saves the preprocessed data to a data file.
 
     :param database: a database type, supporting either 'dast' or 'twitter'
-    :param data_path: the path to the raw data which is to be preprocessed
+    :param data: either the path to the raw data which is to be preprocessed, or the raw data itself
     :param sub: whether sub-sampling should be applied to the dataset, removing conversation branches where all
     comments are of the "commenting" SDQC class, which is found to usually be the majority class
     :param sdqc_parent: whether the SDQC value of the parent comment in the conversation tree should be included as
@@ -143,9 +143,10 @@ def preprocess(database, data_path=False, sub=False, sdqc_parent=False, text=Fal
     if lstm_wembs:
         features_header.append('source_wembs')
 
-    data_path, dataset, out_path = get_database_variables(database, data_path)
+    data, dataset, out_path = get_database_variables(database, data)
 
-    raw_data = data_loader.load_raw_data(data_path, database)
+    print(data)
+    raw_data = data_loader.load_raw_data(data, database)
 
     for tree in raw_data:
         dataset.add_submission(tree[0])
@@ -182,7 +183,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args(argv)
 
-    preprocess(database=args.database, data_path=args.data_path, sub=args.sub_sample, sdqc_parent=args.sdqc_parent,
+    preprocess(database=args.database, data=args.data_path, sub=args.sub_sample, sdqc_parent=args.sdqc_parent,
                text=args.text_features, sentiment=args.sentiment, lexicon=args.lexicon, pos=args.pos,
                wembs=args.word_embs, lstm_wembs=args.lstm_wembs, write_out=args.write_out,
                out_file_name=args.out_file_name)

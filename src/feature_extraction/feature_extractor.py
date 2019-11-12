@@ -5,7 +5,6 @@ from afinn import Afinn
 from src.feature_extraction import word_embeddings
 from src.feature_extraction.polyglot_pos import pos_tags_occurrence
 
-#
 
 afinn = Afinn(language='da', emoticons=True)
 
