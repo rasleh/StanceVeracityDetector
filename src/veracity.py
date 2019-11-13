@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-
+from src import tweet_fetcher
 from src.models.hmm_veracity import HMM
 from src.models.lstm_stance import StanceLSTM
 from src.preprocess_stance import preprocess
@@ -80,77 +80,11 @@ def predict_stance(feature_vector, clf):
     return predicted
 
 
-def main(argv):
-    """
-    Script main method, which loads two machine learning models, performing stance detection and subsequent veracity
-    determination for a dataset of branches using these models, and printing the results.
-
-    See project README for more in-depth description of command-line interfaces.
-
-    :param argv: user-specified arguments parsed from command line.
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-smp', '--stance_model_path', default=stance_lstm_model,
-                               help='Path to pre-trained stance detection model')
-    parser.add_argument('-vmp', '--veracity_model_path', default=None,
-                               help='Path to pre-trained veracity prediction model')
-    parser.add_argument('-ts', '--timestamps', default=True,
-                        help='Include normalized timestamps of comments as features?')
-
-    subparsers = parser.add_subparsers(help='Choose whether to use new or sored data for veracity preciction')
-
-    # Create parser for using new data for veracity prediction
-    new_parser = subparsers.add_parser('new', help='Using new data for veracity prediction')
-    new_parser.add_argument('-id', help='The ID of a tweet from the conversation, for which veracity will be determined')
-
-    # Create parser for using stored data for veracity prediction
-    stored_parser = subparsers.add_parser('stored', help='Using stored data for veracity prediction. Defauilts are'
-                                                         'supplied for all parameters')
-
-    stored_parser.add_argument('-dt', '--data_type', default='twitter',
-                        help='Type of data used for veracity prediction, either \'twitter\' or \'dast\'')
-
-    stored_parser.add_argument('-dp', '--data_path', default=None, help='Path to data')
-
-    args = parser.parse_args(argv)
-
-    if args.veracity_model_path is None:
-        if args.timestamps:
-            args.veracity_model_path = veracity_hmm_model_timestamps
-        else:
-            args.veracity_model_path = veracity_hmm_model_no_timestamps
-
-    features = dict(text=False, lexicon=False, sentiment=False, pos=False, wembs=False, lstm_wembs=True)
-
-    num_to_stance = {
-        0: 'Supporting',
-        1: 'Denying',
-        2: 'Querying',
-        3: 'Commenting'
-    }
+def predict_veracity(args, dataset, feature_vectors):
+    num_to_stance = {0: 'Supporting', 1: 'Denying', 2: 'Querying', 3: 'Commenting'}
 
     hmm_clf = load(args.veracity_model_path)
     lstm_clf = load(args.stance_model_path)
-
-    if args.stored:
-        if args.data_path is None:
-            if args.data_type is 'twitter':
-                args.data_path = twitter_data_path
-            elif args.data_type is 'dast':
-                args.data_path = dast_data_path
-            else:
-                print('Defined data type not recognized')
-                return
-
-    if args.new:
-        args.data_type = 'twitter'
-
-
-
-    # TODO: Evaluate whether veracity should make use of pre-processed data, and data-loader class
-    dataset, feature_vectors = preprocess(args.data_type, args.data_path, text=features['text'], lexicon=features['lexicon'],
-                                          sentiment=features['sentiment'], pos=features['pos'],
-                                          wembs=features['wembs'], lstm_wembs=features['lstm_wembs'])
 
     pointer = 0
     for source in dataset.submissions:
@@ -180,23 +114,96 @@ def main(argv):
                         predicted.append(0)
                     else:
                         created = dataset.annotations[comment_id].created
-                        predicted.append((created-earliest)/(latest-earliest))
+                        predicted.append((created - earliest) / (latest - earliest))
 
                 if len(predicted) is not 0:
                     veracity_features.append(predicted)
 
             print("Stances in branch of length {}:".format(len(branch)))
             for i in range(len(veracity_features)):
-                print("ID: {},\t\tLabel: {},\t\tPost: {}".format(branch[i].id, num_to_stance[veracity_features[i][0]], branch[i].text))
+                print("ID: {},\t\tLabel: {},\t\tPost: {}".format(branch[i].id, num_to_stance[veracity_features[i][0]],
+                                                                 branch[i].text))
 
             veracity_features = np.array(veracity_features).reshape(-1, len(veracity_features))
 
             rumour_veracity = hmm_clf.predict([[veracity_features]])[0]
 
             if rumour_veracity:
-                print("Veracity: True,\t\tSource id: {}\t\t Source post: {}\n".format(source.source.id, source.source.text))
+                print("Veracity: True,\t\tSource id: {}\t\t Source post: {}\n".format(source.source.id,
+                                                                                      source.source.text))
             else:
-                print("Veracity: False,\t\tSource id: {}\t\t Source post: {}\n".format(source.source.id, source.source.text))
+                print("Veracity: False,\t\tSource id: {}\t\t Source post: {}\n".format(source.source.id,
+                                                                                       source.source.text))
+
+
+def veracity_stored(args, features):
+    if args.data_path is None:
+        if args.data_type is 'twitter':
+            args.data_path = twitter_data_path
+        elif args.data_type is 'dast':
+            args.data_path = dast_data_path
+        else:
+            print('Defined data type not recognized')
+            return
+
+    dataset, feature_vectors = preprocess(args.data_type, args.data_path, text=features['text'],
+                                          lexicon=features['lexicon'],
+                                          sentiment=features['sentiment'], pos=features['pos'],
+                                          wembs=features['wembs'], lstm_wembs=features['lstm_wembs'])
+    return dataset, feature_vectors
+
+
+def veracity_new(args, features):
+    args.data_type = 'twitter'
+    data = tweet_fetcher.retrieve_conversation_thread(args.id)
+    print(data)
+
+
+def main(argv):
+    """
+    Script main method, which loads two machine learning models, performing stance detection and subsequent veracity
+    determination for a dataset of branches using these models, and printing the results.
+
+    See project README for more in-depth description of command-line interfaces.
+
+    :param argv: user-specified arguments parsed from command line.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-smp', '--stance_model_path', default=stance_lstm_model,
+                               help='Path to pre-trained stance detection model')
+    parser.add_argument('-vmp', '--veracity_model_path', default=None,
+                               help='Path to pre-trained veracity prediction model')
+    parser.add_argument('-ts', '--timestamps', default=True,
+                        help='Include normalized timestamps of comments as features?')
+
+    subparsers = parser.add_subparsers(help='Choose whether to use new or sored data for veracity preciction')
+
+    # Create parser for using new data for veracity prediction
+    new_parser = subparsers.add_parser('new', help='Using new data for veracity prediction')
+    new_parser.add_argument('id', help='The ID of a tweet from the conversation, for which veracity will be determined')
+    new_parser.set_defaults(func=veracity_new)
+
+    # Create parser for using stored data for veracity prediction
+    stored_parser = subparsers.add_parser('stored', help='Using stored data for veracity prediction. Defauilts are'
+                                                         'supplied for all parameters')
+    stored_parser.add_argument('-dt', '--data_type', default='twitter',
+                        help='Type of data used for veracity prediction, either \'twitter\' or \'dast\'')
+    stored_parser.add_argument('-dp', '--data_path', default=None, help='Path to data')
+    stored_parser.set_defaults(func=veracity_stored)
+
+    args = parser.parse_args(argv)
+
+    if args.veracity_model_path is None:
+        if args.timestamps:
+            args.veracity_model_path = veracity_hmm_model_timestamps
+        else:
+            args.veracity_model_path = veracity_hmm_model_no_timestamps
+
+    features = dict(text=False, lexicon=False, sentiment=False, pos=False, wembs=False, lstm_wembs=True)
+
+    dataset, feature_vectors = args.func(args, features)
+
+    predict_veracity(args, dataset, feature_vectors)
 
 
 if __name__ == "__main__":

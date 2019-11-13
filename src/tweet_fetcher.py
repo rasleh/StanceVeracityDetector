@@ -5,6 +5,9 @@ from datetime import date
 import configparser
 import tweepy
 
+current_path = os.path.abspath(__file__)
+ini_path = os.path.join
+
 # TODO: Make fetcher use absolute paths
 # TODO: Implement command-line client
 # Performs authentication necessary to access the Twitter API, using the credentials given in twitter.ini
@@ -81,7 +84,7 @@ def write_to_file(source_tweet_id):
             db_file.write(data[i])
 
 
-def retrieve_conversation_thread(tweet_id, write_out):
+def retrieve_conversation_thread(tweet_id, write_out=False):
     source_tweet_id, source_username = navigate_to_source(tweet_id)
 
     # Collect source tweet, add to collected tweets and fill SDQC-related fields with placeholders

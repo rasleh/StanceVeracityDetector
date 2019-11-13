@@ -3,6 +3,8 @@ import os
 import sys
 from pathlib import Path
 
+import warnings
+warnings.filterwarnings(action='ignore', category=UserWarning)
 import numpy as np
 from gensim.models import Word2Vec
 from gensim.models.fasttext import FastText
