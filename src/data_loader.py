@@ -30,9 +30,9 @@ def explore(tweet_id, current_branch, raw_data, tree):
             explore(child_id, new_branch, raw_data, tree)
 
 
-def generate_tweet_tree(root_tweet, raw_data):
-    tree = [root_tweet]
-    for child in root_tweet['children']:
+def generate_tweet_tree(source_tweet, raw_data):
+    tree = [source_tweet]
+    for child in source_tweet['children']:
         branch = []
         explore(child, branch, raw_data, tree)
     return tree
@@ -51,8 +51,8 @@ def load_raw_twitter(path):
         for line in file:
             root_id = line.split('\t')[0]
             raw_data = json.loads(line.split('\t')[1])
-            root_tweet = raw_data[root_id]
-            tree = generate_tweet_tree(root_tweet, raw_data)
+            source_tweet = raw_data[root_id]
+            tree = generate_tweet_tree(source_tweet, raw_data)
             data.append(tree)
     return data
 

@@ -10,6 +10,7 @@ from src import tweet_fetcher
 from src.models.hmm_veracity import HMM
 from src.models.lstm_stance import StanceLSTM
 from src.preprocess_stance import preprocess
+from src.data_loader import generate_tweet_tree
 
 from joblib import load
 
@@ -155,7 +156,8 @@ def veracity_stored(args, features):
 
 def veracity_new(args, features):
     args.data_type = 'twitter'
-    data = [tweet_fetcher.retrieve_conversation_thread(args.id)]
+    source_tweet_id, raw_data = tweet_fetcher.retrieve_conversation_thread(args.id)
+    data = [generate_tweet_tree(raw_data[source_tweet_id], raw_data)]
     dataset, feature_vectors = preprocess(args.data_type, data, text=features['text'],
                                           lexicon=features['lexicon'],
                                           sentiment=features['sentiment'], pos=features['pos'],

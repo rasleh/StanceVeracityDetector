@@ -28,14 +28,14 @@ def authenticate():
 
 def navigate_to_source(tweet_id):
     tweet = api.get_status(tweet_id)
-    username = tweet.user.name
+    username = tweet.user.screen_name
     parent = tweet.in_reply_to_status_id_str
     while parent:
         print('Given tweet is not a root node - navigating to root node\n')
         tweet_id = parent
         tweet_status = api.get_status(tweet_id)
         parent = tweet_status.in_reply_to_status_id_str
-        username = tweet_status.user.name
+        username = tweet_status.user.screen_name
     return tweet_id, username
 
 
@@ -80,7 +80,6 @@ def write_to_file(source_tweet_id):
             data.append(source_tweet_id + '\t' + str(collected_tweets))
 
         db_file.seek(0)
-        print(data)
         for i in range(len(data)):
             db_file.write(data[i])
 
@@ -98,7 +97,6 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
 
     # Identify tweets commenting on source
     identify_comments(source_tweet_id, source_username)
-
     # Iterate over tweets identified in comment section, collect them, and search for deeper comments
     while tweets_of_interest.__len__() != 0:
         item_of_interest = tweets_of_interest.popleft()
@@ -111,7 +109,7 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
         # Save tweets in JSON format
         write_to_file(source_tweet_id)
 
-    return collected_tweets
+    return source_tweet_id, collected_tweets
 
 
 tweets_of_interest = deque()
