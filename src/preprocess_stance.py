@@ -145,8 +145,10 @@ def preprocess(database, data=False, sub=False, sdqc_parent=False, text=False, l
 
     data, dataset, out_path = get_database_variables(database, data)
 
-    print(data)
-    raw_data = data_loader.load_raw_data(data, database)
+    if type(data) is str:
+        raw_data = data_loader.load_raw_data(data, database)
+    else:
+        raw_data = data
 
     for tree in raw_data:
         dataset.add_submission(tree[0])

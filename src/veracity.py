@@ -155,8 +155,13 @@ def veracity_stored(args, features):
 
 def veracity_new(args, features):
     args.data_type = 'twitter'
-    data = tweet_fetcher.retrieve_conversation_thread(args.id)
-    print(data)
+    data = [tweet_fetcher.retrieve_conversation_thread(args.id)]
+    dataset, feature_vectors = preprocess(args.data_type, data, text=features['text'],
+                                          lexicon=features['lexicon'],
+                                          sentiment=features['sentiment'], pos=features['pos'],
+                                          wembs=features['wembs'], lstm_wembs=features['lstm_wembs'])
+
+    return dataset, feature_vectors
 
 
 def main(argv):

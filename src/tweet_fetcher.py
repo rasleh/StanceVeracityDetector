@@ -6,14 +6,15 @@ import configparser
 import tweepy
 
 current_path = os.path.abspath(__file__)
-ini_path = os.path.join
+ini_path = os.path.join(current_path, '../../twitter.ini')
+
 
 # TODO: Make fetcher use absolute paths
 # TODO: Implement command-line client
 # Performs authentication necessary to access the Twitter API, using the credentials given in twitter.ini
 def authenticate():
     config = configparser.ConfigParser()
-    config.read('../twitter.ini')
+    config.read(ini_path)
 
     consumer_key = config.get('Twitter', 'consumer_key')
     consumer_secret = config.get('Twitter', 'consumer_secret')
