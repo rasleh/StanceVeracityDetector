@@ -89,8 +89,11 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
 
     # Collect source tweet, add to collected tweets and fill SDQC-related fields with placeholders
     source_tweet_item = api.get_status(source_tweet_id, tweet_mode='extended')._json
-    print("Scraping from source tweet {}\n{}\n\nCollected tweets:"
+    print("Scraping from source tweet {}\n{}\n\n"
           .format(source_tweet_id, source_tweet_item['full_text'].replace('\n', ' ')))
+    if write_out:
+        print("Collected tweets:")
+
     add_sdqc_placeholders(source_tweet_item)
     source_tweet_item['full_text'] = source_tweet_item['full_text'].replace('\n', ' ')
     collected_tweets[str(source_tweet_id)] = source_tweet_item
@@ -103,7 +106,8 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
         add_sdqc_placeholders(item_of_interest._json)
         item_of_interest._json['full_text'] = item_of_interest._json['full_text'].replace('\n', ' ')
         collected_tweets[item_of_interest.id_str] = item_of_interest._json
-        print(item_of_interest.id_str+"\t"+item_of_interest.full_text)
+        if write_out:
+            print(item_of_interest.id_str+"\t"+item_of_interest.full_text)
         identify_comments(item_of_interest.id_str, item_of_interest.user.screen_name)
     if write_out:
         # Save tweets in JSON format
@@ -115,10 +119,3 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
 tweets_of_interest = deque()
 collected_tweets = {}
 api = authenticate()
-
-
-#if __name__ == '__main__':
-
-    # retrieve_conversation_thread("1168771907036033024", "oestergaard")
-    # retrieve_conversation_thread("1168845054569566208", True)
-    # retrieve_conversation_thread("1169544969784320000", "Kristianthdahl")

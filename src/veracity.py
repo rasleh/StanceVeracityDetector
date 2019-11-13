@@ -89,7 +89,8 @@ def predict_veracity(args, dataset, feature_vectors):
 
     pointer = 0
     for source in dataset.submissions:
-        print('ID is: ', source.source.id)
+        print("Predicting veracity for following source tweet based on branches: {}\n{}\n\n"
+              .format(source.source.id, source.source.text))
 
         for branch in source.branches:
             branch_features = feature_vectors[pointer]
@@ -130,11 +131,9 @@ def predict_veracity(args, dataset, feature_vectors):
             rumour_veracity = hmm_clf.predict([[veracity_features]])[0]
 
             if rumour_veracity:
-                print("Veracity: True,\t\tSource id: {}\t\t Source post: {}\n".format(source.source.id,
-                                                                                      source.source.text))
+                print("Source veracity: True, based on stances in comment branch\n")
             else:
-                print("Veracity: False,\t\tSource id: {}\t\t Source post: {}\n".format(source.source.id,
-                                                                                       source.source.text))
+                print("Source veracity: False, based on stances in comment branch\n")
 
 
 def veracity_stored(args, features):
