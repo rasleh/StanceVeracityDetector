@@ -49,19 +49,6 @@ def navigate_to_source(tweet):
         parent = tweet_object.in_reply_to_status_id_str
         username = tweet_object.user.screen_name
     return tweet_id, username
-#
-
-# def navigate_to_source(tweet_id: str):
-#     tweet_object = api.get_status(tweet_id)
-#     username = tweet_object.user.screen_name
-#     parent = tweet_object.in_reply_to_status_id_str
-#     while parent:
-#         print('Given tweet is not a root node - navigating to root node\n')
-#         tweet_id = parent
-#         tweet_status = api.get_status(tweet_id)
-#         parent = tweet_status.in_reply_to_status_id_str
-#         username = tweet_status.user.screen_name
-#     return tweet_id, username
 
 
 def add_sdqc_placeholders(tweet_item):
@@ -73,12 +60,12 @@ def add_sdqc_placeholders(tweet_item):
 def identify_comments(tweet_id, username):
     children = []
     # Lookup a given user, extract all recent replies to user, and check if replies are to a specific tweet
-    for result in tweepy.Cursor(api.search, q='to:' + username, result_type='recent', timeout=999999, tweet_mode='extended').items():
+    for result in tweepy.Cursor(api.search, q='to:' + username, since_id=tweet_id, result_type='recent', timeout=999999, tweet_mode='extended').items():
         if hasattr(result, 'in_reply_to_status_id_str'):
             if result.in_reply_to_status_id_str == tweet_id:
                 # Mark tweets for further investigation, and add tweet id to list of comments
                 all_tweets[result.id_str] = result
-                tweets_of_interest.append(result)
+                tweets_of_interest.append(result.id_str)
                 children.append(result.id_str)
 
     # Add ids for all commenting tweets to json of parent tweet
@@ -129,13 +116,14 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
     identify_comments(source_tweet_id, source_username)
     # Iterate over tweets identified in comment section, collect them, and search for deeper comments
     while tweets_of_interest.__len__() != 0:
-        item_of_interest = tweets_of_interest.popleft()
+        item_of_interest_id = tweets_of_interest.popleft()
+        item_of_interest = all_tweets[item_of_interest_id]
         add_sdqc_placeholders(item_of_interest._json)
         item_of_interest._json['full_text'] = item_of_interest._json['full_text'].replace('\n', ' ')
-        collected_tweets[item_of_interest.id_str] = item_of_interest._json
+        collected_tweets[item_of_interest_id] = item_of_interest._json
         if write_out:
-            print(item_of_interest.id_str+"\t"+item_of_interest.full_text)
-        identify_comments(item_of_interest.id_str, item_of_interest.user.screen_name)
+            print(item_of_interest_id+"\t"+item_of_interest.full_text)
+        identify_comments(item_of_interest_id, item_of_interest.user.screen_name)
     if write_out:
         # Save tweets in JSON format
         write_to_file(source_tweet_id)
@@ -169,20 +157,6 @@ def popular_search():
     print('Number of source tweets: {}'.format(len(popular_tweets)))
 
 
-
-
-    tweets = {}
-    # new_tweets = api.search(result_type='popular', lang='da', geocode='56.013377,10.362431,200km', count='100')
-    # new_tweets = api.home_timeline()
-    # for tweet in new_tweets:
-    #     #tweets[tweet.id] = tweet
-    #     print(tweet.text)
-    # while new_tweets:
-    #     new_tweets = api.search(lang='da', geocode='56.013377,10.362431,200km', count='100')
-    #
-    # for tweet in lotta_tweets:
-    #     print(tweet.text)
-
 popular_tweets = {}
 all_tweets = {}
 
@@ -191,4 +165,3 @@ collected_tweets = {}
 api = authenticate()
 
 retrieve_conversation_thread('1194734268649549825')
-retrieve_conversation_thread('1194668613531324417')
