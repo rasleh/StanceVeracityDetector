@@ -75,29 +75,40 @@ def identify_comments(tweet_id, username, collected_tweets):
 # TODO: Remove the overwrite stuff, write it into the two primary methods as updates to a json object -> Update the
 #  "Children" array with any new posts.
 # TODO: Re-design, to write a line for each index in array input, each index containing tuple of ID and collectedTweets
-def write_to_file(new_data):
+def write_to_file(data):
+    # Create file if it does not exist
+    if not os.path.isfile('tweet_data.txt'):
+        open('tweet_data.txt', 'w', encoding="UTF-8")
+
     with open('tweet_data.txt', 'r+', encoding="UTF-8") as db_file:
-        in_db = False
-        data = []
-        if db_file.read(1):
-            db_file.seek(0)
-            data = db_file.readlines()
-            for i in range(len(data)):
-                for source in new_data:
-                    if data[i].split('\t')[0] == source[0]:
-                        data[i] = source[0] + '\t' + str(source[1])
-                        in_db = True
+        empty_file = False
+        if os.stat('tweet_data.txt').st_size == 0:
+            empty_file = True
 
-            if not in_db:
-                data[-1] = data[-1] + '\n'
+        not_added = False
+        db_data = []
+        new_data = []
 
-        if not in_db:
+        if not empty_file:
+            db_data = db_file.readlines()
+            for source in data:
+                for i in range(len(db_data)):
+                    if db_data[i].split('\t')[0] == source[0]:
+                        db_data[i] = source[0] + '\t' + str(source[1])
+                    else:
+                        new_data.append(source)
+                        not_added = True
+            if not_added:
+                db_data[-1] = db_data[-1] + '\n'
+        else:
+            new_data = data
 
-            data.append(source_tweet_id + '\t' + str(collected_tweets))
+        for source in new_data:
+            db_data.append(source[0] + '\t' + str(source[1]))
 
         db_file.seek(0)
-        for i in range(len(data)):
-            db_file.write(data[i])
+        for i in range(len(db_data)):
+            db_file.write(db_data[i])
 
 
 def retrieve_conversation_thread(tweet_id, write_out=False):
@@ -167,5 +178,9 @@ all_tweets = {}
 
 tweets_of_interest = deque()
 api = authenticate()
+retrieve_conversation_thread('1194155191534342144', True)
+
+
+#retrieve_conversation_thread('1194866464827858944', True)
 
 # popular_search()
