@@ -57,7 +57,7 @@ def add_sdqc_placeholders(tweet_item):
     tweet_item['SDQC_Submission'] = "Underspecified"
 
 
-def identify_comments(tweet_id, username):
+def identify_comments(tweet_id, username, collected_tweets):
     children = []
     # Lookup a given user, extract all recent replies to user, and check if replies are to a specific tweet
     for result in tweepy.Cursor(api.search, q='to:' + username, since_id=tweet_id, result_type='recent', timeout=999999, tweet_mode='extended').items():
@@ -74,7 +74,8 @@ def identify_comments(tweet_id, username):
 
 # TODO: Remove the overwrite stuff, write it into the two primary methods as updates to a json object -> Update the
 #  "Children" array with any new posts.
-def write_to_file(source_tweet_id):
+# TODO: Re-design, to write a line for each index in array input, each index containing tuple of ID and collectedTweets
+def write_to_file(new_data):
     with open('tweet_data.txt', 'r+', encoding="UTF-8") as db_file:
         in_db = False
         data = []
@@ -82,14 +83,16 @@ def write_to_file(source_tweet_id):
             db_file.seek(0)
             data = db_file.readlines()
             for i in range(len(data)):
-                if data[i].split('\t')[0] == source_tweet_id:
-                    data[i] = source_tweet_id + '\t' + str(collected_tweets)
-                    in_db = True
+                for source in new_data:
+                    if data[i].split('\t')[0] == source[0]:
+                        data[i] = source[0] + '\t' + str(source[1])
+                        in_db = True
 
             if not in_db:
                 data[-1] = data[-1] + '\n'
 
         if not in_db:
+
             data.append(source_tweet_id + '\t' + str(collected_tweets))
 
         db_file.seek(0)
@@ -98,6 +101,7 @@ def write_to_file(source_tweet_id):
 
 
 def retrieve_conversation_thread(tweet_id, write_out=False):
+    collected_tweets = {}
     start_time = datetime.now()
     source_tweet_id, source_username = navigate_to_source(tweet_id)
 
@@ -113,7 +117,7 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
     collected_tweets[source_tweet_id] = source_tweet_item
 
     # Identify tweets commenting on source
-    identify_comments(source_tweet_id, source_username)
+    identify_comments(source_tweet_id, source_username, collected_tweets)
     # Iterate over tweets identified in comment section, collect them, and search for deeper comments
     while tweets_of_interest.__len__() != 0:
         item_of_interest_id = tweets_of_interest.popleft()
@@ -123,26 +127,25 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
         collected_tweets[item_of_interest_id] = item_of_interest._json
         if write_out:
             print(item_of_interest_id+"\t"+item_of_interest.full_text)
-        identify_comments(item_of_interest_id, item_of_interest.user.screen_name)
+        identify_comments(item_of_interest_id, item_of_interest.user.screen_name, collected_tweets)
     if write_out:
         # Save tweets in JSON format
-        write_to_file(source_tweet_id)
+        write_to_file([(source_tweet_id, collected_tweets)])
     print('Time elapsed for scraping: {}\n\n'.format(datetime.now()-start_time))
     return source_tweet_id, collected_tweets
 
 
 def popular_search():
+    popular_tweets = {}
+    data = []
     cursor = 0
-    for tweet in tweepy.Cursor(api.search, result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100').items():
+    for tweet in tweepy.Cursor(api.search, q='min_replies:10', result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100').items():
         cursor += 1
-        if tweet.retweet_count > 20:
-            popular_tweets[tweet.id_str] = tweet
+        popular_tweets[tweet.id_str] = tweet
         all_tweets[tweet.id_str] = tweet
-        if cursor % 1000 is 0:
-            print('Scraped {}/{} tweets, and {} popular tweets'.format(len(all_tweets), cursor, len(popular_tweets)))
-
-        if cursor >= 1000:
-            break
+        if cursor % 10 is 0:
+            print('Scraped {} popular tweets. Latest tweet: {}'
+                  .format(len(popular_tweets), tweet.created_at))
 
     for tweet_id, tweet in popular_tweets.items():
         source_id, username = navigate_to_source(tweet_id)
@@ -155,13 +158,14 @@ def popular_search():
                     popular_tweets[source_id] = api.get_status(source_id)
 
     print('Number of source tweets: {}'.format(len(popular_tweets)))
+    for source_id, source_tweet in popular_tweets.items():
+        source_tweet_id, collected_tweets = retrieve_conversation_thread(source_id)
+        data.append((source_tweet_id, collected_tweets))
 
 
-popular_tweets = {}
 all_tweets = {}
 
 tweets_of_interest = deque()
-collected_tweets = {}
 api = authenticate()
 
-retrieve_conversation_thread('1194734268649549825')
+# popular_search()

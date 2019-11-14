@@ -155,7 +155,9 @@ def veracity_stored(args, features):
 
 def veracity_new(args, features):
     args.data_type = 'twitter'
-    source_tweet_id, raw_data = tweet_fetcher.retrieve_conversation_thread(args.id)
+    new_data = tweet_fetcher.retrieve_conversation_thread(args.id)
+    source_tweet_id = new_data[0]
+    raw_data = new_data[1]
     data = [generate_tweet_tree(raw_data[source_tweet_id], raw_data)]
     dataset, feature_vectors = preprocess(args.data_type, data, text=features['text'],
                                           lexicon=features['lexicon'],
