@@ -74,7 +74,6 @@ def identify_comments(tweet_id, username, collected_tweets):
 
 # TODO: Remove the overwrite stuff, write it into the two primary methods as updates to a json object -> Update the
 #  "Children" array with any new posts.
-# TODO: Re-design, to write a line for each index in array input, each index containing tuple of ID and collectedTweets
 def write_to_file(data):
     # Create file if it does not exist
     if not os.path.isfile('tweet_data.txt'):
@@ -119,7 +118,7 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
     # Collect source tweet, add to collected tweets and fill SDQC-related fields with placeholders
     source_tweet_item = all_tweets[source_tweet_id]._json
     source_tweet_item['full_text'] = source_tweet_item['full_text'].replace('\n', ' ')
-    print("Scraping from source tweet {}\n{}\n"
+    print("Scraping conversation tree from source tweet {}\n{}\n"
           .format(source_tweet_id, source_tweet_item['full_text']))
     if write_out:
         print("Collected tweets:")
@@ -171,16 +170,17 @@ def popular_search():
     print('Number of source tweets: {}'.format(len(popular_tweets)))
     for source_id, source_tweet in popular_tweets.items():
         source_tweet_id, collected_tweets = retrieve_conversation_thread(source_id)
-        data.append((source_tweet_id, collected_tweets))
+        yield source_tweet_id, collected_tweets
+        #data.append((source_tweet_id, collected_tweets))
 
 
 all_tweets = {}
 
 tweets_of_interest = deque()
 api = authenticate()
-retrieve_conversation_thread('1194155191534342144', True)
+# retrieve_conversation_thread('1194155191534342144', True)
 
 
-#retrieve_conversation_thread('1194866464827858944', True)
+# retrieve_conversation_thread('1194866464827858944', True)
 
 # popular_search()
