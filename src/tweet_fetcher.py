@@ -6,10 +6,10 @@ import configparser
 import tweepy
 
 current_path = os.path.abspath(__file__)
-ini_path = os.path.join(current_path, '../../twitter.ini')
+ini_path = os.path.join(current_path, '../../data/twitter.ini')
+raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/{}.txt'.format(datetime.today()))
 
 
-# TODO: Make fetcher use absolute paths
 # TODO: Implement command-line client
 # Performs authentication necessary to access the Twitter API, using the credentials given in twitter.ini
 def authenticate():
@@ -76,12 +76,12 @@ def identify_comments(tweet_id, username, collected_tweets):
 #  "Children" array with any new posts.
 def write_to_file(data):
     # Create file if it does not exist
-    if not os.path.isfile('tweet_data.txt'):
-        open('tweet_data.txt', 'w', encoding="UTF-8")
+    if not os.path.isfile(raw_data_path):
+        open(raw_data_path, 'w', encoding="UTF-8")
 
-    with open('tweet_data.txt', 'r+', encoding="UTF-8") as db_file:
+    with open(raw_data_path, 'r+', encoding="UTF-8") as db_file:
         empty_file = False
-        if os.stat('tweet_data.txt').st_size == 0:
+        if os.stat(raw_data_path).st_size == 0:
             empty_file = True
 
         not_added = False
@@ -153,9 +153,10 @@ def popular_search():
         cursor += 1
         popular_tweets[tweet.id_str] = tweet
         all_tweets[tweet.id_str] = tweet
-        if cursor % 10 is 0:
+        if cursor % 5 is 0:
             print('Scraped {} popular tweets. Latest tweet: {}'
                   .format(len(popular_tweets), tweet.created_at))
+            break
 
     for tweet_id, tweet in popular_tweets.items():
         source_id, username = navigate_to_source(tweet_id)

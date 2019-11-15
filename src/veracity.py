@@ -82,6 +82,7 @@ def predict_stance(feature_vector, clf):
 
 
 def predict_veracity(args, dataset, feature_vectors):
+    predictions = []
     num_to_stance = {0: 'Supporting', 1: 'Denying', 2: 'Querying', 3: 'Commenting'}
 
     hmm_clf = load(args.veracity_model_path)
@@ -129,11 +130,15 @@ def predict_veracity(args, dataset, feature_vectors):
             veracity_features = np.array(veracity_features).reshape(-1, len(veracity_features))
 
             rumour_veracity = hmm_clf.predict([[veracity_features]])[0]
-
+            # predictions.append("{}\t{}\t{}".format(source.source.text, rumour_veracity, veracity_features))
             if rumour_veracity:
                 print("Source veracity: True, based on stances in comment branch\n")
             else:
                 print("Source veracity: False, based on stances in comment branch\n")
+
+            branch_labels = [num_to_stance[x] for x in veracity_features.ravel()]
+            yield "Veracity: {}\tBranch stance labels: {}\tRumour text: {}\n".\
+                format(rumour_veracity, branch_labels, source.source.text)
 
 
 def veracity_stored(args, features):
