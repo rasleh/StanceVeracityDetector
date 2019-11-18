@@ -11,6 +11,7 @@ from src.models.lstm_stance import StanceLSTM
 
 current_path = os.path.abspath(__file__)
 veracity_hmm_model_no_timestamps = os.path.join(current_path, Path('../../pretrained_models/hmm_1_branch.joblib'))
+#veracity_hmm_model_no_timestamps = os.path.join(current_path, Path('../../pretrained_models/hmm_branch_0.52_nts_truecast.joblib'))
 stance_lstm_model = os.path.join(current_path, Path('../../pretrained_models/stance_lstm_3_200_1_50_0.36.joblib'))
 potential_rumour_path = os.path.join(current_path, Path('../potential_rumours.txt'))
 
@@ -27,6 +28,7 @@ def main(argv):
                         help='Include normalized timestamps of comments as features?')
 
     args = parser.parse_args(argv)
+
     with open(potential_rumour_path, 'w', encoding='UTF-8') as rumour_file:
         for source_tweet_id, collected_tweets in tweet_fetcher.popular_search():
             data = [veracity.generate_tweet_tree(collected_tweets[source_tweet_id], collected_tweets)]
@@ -36,6 +38,7 @@ def main(argv):
                                               wembs=features['wembs'], lstm_wembs=features['lstm_wembs'])
             for result in veracity.predict_veracity(args, dataset, feature_vectors):
                 rumour_file.write(result)
+                rumour_file.flush()
 
 
 if __name__ == "__main__":

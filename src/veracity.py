@@ -16,8 +16,10 @@ from joblib import load
 
 current_path = os.path.abspath(__file__)
 stance_lstm_model = os.path.join(current_path, Path('../../pretrained_models/stance_lstm_3_200_1_50_0.36.joblib'))
-veracity_hmm_model_timestamps = os.path.join(current_path, Path('../../pretrained_models/hmm_branch_0.56_ts.joblib'))
-veracity_hmm_model_no_timestamps = os.path.join(current_path, Path('../../pretrained_models/hmm_1_branch.joblib'))
+veracity_hmm_model_timestamps = os.path.join(current_path, Path('../../pretrained_models/hmm_branch_0.56_ts_falsecast.joblib'))
+# veracity_hmm_model_no_timestamps = os.path.join(current_path, Path('../../pretrained_models/hmm_1_branch.joblib'))
+veracity_hmm_model_no_timestamps = os.path.join(current_path, Path('../../pretrained_models/hmm_branch_0.52_nts_truecast.joblib'))
+
 twitter_data_path = os.path.join(current_path, Path('../../data/datasets/twitter/raw/loekke_oestergaard.txt'))
 dast_data_path = os.path.join(current_path, Path('../../data/datasets/dast/raw/dataset/'))
 
@@ -82,7 +84,6 @@ def predict_stance(feature_vector, clf):
 
 
 def predict_veracity(args, dataset, feature_vectors):
-    predictions = []
     num_to_stance = {0: 'Supporting', 1: 'Denying', 2: 'Querying', 3: 'Commenting'}
 
     hmm_clf = load(args.veracity_model_path)
@@ -125,31 +126,29 @@ def predict_veracity(args, dataset, feature_vectors):
             print("Stances in branch of length {}:".format(len(branch)))
             for i in range(len(veracity_features)):
                 print("ID: {},\t\tLabel: {},\t\tPost: {}".format(branch[i].id, num_to_stance[veracity_features[i][0]],
-                                                                 branch[i].text))
+                                                                 branch[i].text[:200]))
+
+            # Extract stance labels from veracity features
+            label_features = [num_to_stance[row[0]] for row in veracity_features]
 
             veracity_features = np.array(veracity_features).reshape(-1, len(veracity_features))
 
             rumour_veracity = hmm_clf.predict([[veracity_features]])[0]
-            # predictions.append("{}\t{}\t{}".format(source.source.text, rumour_veracity, veracity_features))
-            if rumour_veracity:
-                print("Source veracity: True, based on stances in comment branch\n")
-            else:
-                print("Source veracity: False, based on stances in comment branch\n")
 
-            branch_labels = [num_to_stance[x] for x in veracity_features.ravel()]
-            yield "Veracity: {}\tBranch stance labels: {}\tRumour text: {}\n".\
-                format(rumour_veracity, branch_labels, source.source.text)
+            veracity_map = {0: 'True', 1: 'False'}
+            yield "Claim veracity: {}\tBranch stance labels: {}\tClaim text: {}\n".\
+                format(veracity_map[rumour_veracity], label_features, source.source.text)
 
 
 def veracity_stored(args, features):
     if args.data_path is None:
-        if args.data_type is 'twitter':
+        if args.data_type == 'twitter':
             args.data_path = twitter_data_path
-        elif args.data_type is 'dast':
+        elif args.data_type == 'dast':
             args.data_path = dast_data_path
         else:
             print('Defined data type not recognized')
-            return
+            exit(-1)
 
     dataset, feature_vectors = preprocess(args.data_type, args.data_path, text=features['text'],
                                           lexicon=features['lexicon'],
@@ -216,7 +215,8 @@ def main(argv):
 
     dataset, feature_vectors = args.func(args, features)
 
-    predict_veracity(args, dataset, feature_vectors)
+    for veracity_prediction in predict_veracity(args, dataset, feature_vectors):
+        print(veracity_prediction)
 
 
 if __name__ == "__main__":

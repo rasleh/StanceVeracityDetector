@@ -147,7 +147,6 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
 
 def popular_search():
     popular_tweets = {}
-    data = []
     cursor = 0
     for tweet in tweepy.Cursor(api.search, q='min_replies:10', result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100').items():
         cursor += 1
@@ -172,16 +171,8 @@ def popular_search():
     for source_id, source_tweet in popular_tweets.items():
         source_tweet_id, collected_tweets = retrieve_conversation_thread(source_id)
         yield source_tweet_id, collected_tweets
-        #data.append((source_tweet_id, collected_tweets))
 
 
 all_tweets = {}
-
 tweets_of_interest = deque()
 api = authenticate()
-# retrieve_conversation_thread('1194155191534342144', True)
-
-
-# retrieve_conversation_thread('1194866464827858944', True)
-
-# popular_search()

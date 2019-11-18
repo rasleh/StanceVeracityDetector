@@ -157,10 +157,10 @@ def load_veracity(path, unverified_cast):
         for line in file:
             veracity, feature_vector = line.replace('\n', '').split('\t')
             feature_vector = feature_vector.replace('[[', '').replace(']]', '').split('], [')
-            if veracity is '2':
-                if unverified_cast is 'true':
+            if veracity == '2':
+                if unverified_cast == 'true':
                     veracity = 1
-                elif unverified_cast is 'false':
+                elif unverified_cast == 'false':
                     veracity = 0
             data.append((int(veracity), [[float(y) for y in x.split(', ')] for x in feature_vector]))
     print('Completed data load')

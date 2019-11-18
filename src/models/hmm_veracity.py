@@ -118,6 +118,8 @@ class HMM(BaseEstimator):
         feature_vectors = [x[1] for x in data]
         predicted_labels = self.predict(feature_vectors)
         actual_labels = [x[0] for x in data]
+        print(predicted_labels)
+        print(actual_labels)
         if unverified_cast is not 'none':
             c_matrix = sk.confusion_matrix(actual_labels, predicted_labels, labels=[0, 1])
         else:
@@ -166,7 +168,7 @@ def main(argv):
                         help='Whether, and how, unverified rumours are cast, either \'true\', \'false\' or \'none\'')
     parser.add_argument('-sm', '--save_model', default=True, help='Whether the model is to be saved to a joblib file')
     parser.add_argument('-mn', '--model_name', help='Name for model joblib file, will be generated if not given')
-    parser.add_argument('-ts', '--timestamps', default=True,
+    parser.add_argument('-ts', '--timestamps', default=False,
                         help='Include normalized timestamps of comments as features?')
     parser.add_argument('-dp', '--data_path', default=None,
                         help='Path to data file relative to hmm_veracity.py script, DAST dataset is used as default')
@@ -178,7 +180,6 @@ def main(argv):
             args.data_path = dast_veracity_path_timestamps
         else:
             args.data_path = dast_veracity_path_no_timestamps
-
     if args.unverified_cast not in ['true', 'false', 'none']:
         print(
             'Please specify whether and how unverified rumours should be cast, either \'true\', \'false\' or \'none\'')
