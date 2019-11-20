@@ -53,7 +53,7 @@ def read_reactions(reaction_directory):
 
 
 def read_source(source_directory):
-    if len(os.listdir(source_directory)) > 1 > 0:
+    if 0 == len(os.listdir(source_directory)) > 1:
         err_msg = "Source tweet folder at {} contains {} source tweet(s). Should contain 1."
         raise RuntimeError(
             err_msg.format(source_directory, len(os.listdir(source_directory))))
@@ -119,7 +119,35 @@ def read_pheme(path=default_pheme_path, language="en"):
     return tweets
 
 
-def generate_veracity_overview(path=default_pheme_path, languages='en'):
+def generate_veracity_overview(path=default_pheme_path):
+    veracity_dict = {}
+    for language_dir in Path(path / 'threads').iterdir():
+        for rumour_folder in language_dir.iterdir():
+            for conversation_folder in rumour_folder.iterdir():
+                conversation_folder_path = path / 'threads' / rumour_folder / conversation_folder
+                source_folder_path = conversation_folder_path / 'source-tweets'
+                if 0 == len(os.listdir(source_folder_path)) > 1:
+                    err_msg = 'Source tweet folder at {} contains {} source tweet(s). Should contain 1.'
+                    raise RuntimeError(
+                        err_msg.format(source_folder_path, len(os.listdir(source_folder_path))))
 
-    with open(path / 'rumour_overview.txt') as rumour_overview:
+                for source_file in source_folder_path.glob("*.json"):
+                    source_id = str(source_file).split('\\')[-1].split('.json')[0]
 
+                veracity_annotation = json.load(open(Path(conversation_folder_path / 'annotation.json'), mode='r', encoding='utf-8'))
+                if 'true' in veracity_annotation and veracity_annotation['true'] == '1':
+                    veracity = 1
+                elif veracity_annotation['misinformation'] == '1':
+                    veracity = 0
+                # Rumor is unverified
+                else:
+                    veracity = 2
+                veracity_dict[source_id] = veracity
+
+    with open(Path(path / 'rumour_overview.txt'), mode='w', encoding='utf-8') as rumour_overview:
+        rumour_overview.write('IDs\tVeracity\n')
+        for source_id, veracity in veracity_dict.items():
+            rumour_overview.write('{}\t{}\n'.format(source_id, veracity))
+
+
+generate_veracity_overview()
