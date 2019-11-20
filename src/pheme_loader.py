@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 
-pheme_path = Path(os.path.join(os.path.abspath(__file__), '../../data/datasets/pheme/raw/'))
+default_pheme_path = Path(os.path.join(os.path.abspath(__file__), '../../data/datasets/pheme/raw/'))
 
 
 def create_annotation_dict(annotation_file):
@@ -26,7 +26,7 @@ def create_annotation_dict(annotation_file):
     return annotations
 
 
-def load_annotations(language):
+def load_annotations(pheme_path, language):
     annotation_dir = pheme_path / "annotations"
     for reaction_file in annotation_dir.glob("*.json"):
         if str(reaction_file).split('\\')[-1].split('-')[0] == language:
@@ -102,22 +102,24 @@ def apply_tree_structure(source, reactions, conversation_folder):
 
 
 def read_all_tweets(base_directory: Path, language):
-    annotations = load_annotations(language)
+    annotations = load_annotations(base_directory, language)
     data = []
     for rumour_folder in base_directory.iterdir():
         for conversation_folder in rumour_folder.iterdir():
             folder_dir = base_directory / rumour_folder / conversation_folder
             source, reactions = read_conversation(folder_dir)
             reactions = append_annotations(reactions, annotations)
-            tree = apply_tree_structure(source, reactions, conversation_folder)
             data.append(apply_tree_structure(source, reactions, conversation_folder))
     return data
 
 
-def read_pheme(language="en"):
-    tweet_path = pheme_path / "threads" / language
-    tweets = read_all_tweets(tweet_path, language)
+def read_pheme(path=default_pheme_path, language="en"):
+    pheme_path = path / "threads" / language
+    tweets = read_all_tweets(pheme_path, language)
     return tweets
 
 
-read_pheme()
+def generate_veracity_overview(path=default_pheme_path, languages='en'):
+
+    with open(path / 'rumour_overview.txt') as rumour_overview:
+

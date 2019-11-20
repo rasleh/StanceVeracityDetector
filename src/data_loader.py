@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import pheme_loader
 
 
 """
@@ -31,6 +32,7 @@ def explore(tweet_id, current_branch, raw_data, tree):
 
 
 def generate_tweet_tree(source_tweet, raw_data):
+    """Generates a data structure for use in the function load_raw_twitter by calling the explore function"""
     tree = [source_tweet]
     for child in source_tweet['children']:
         branch = []
@@ -85,6 +87,16 @@ def load_raw_dast(path):
             data.append(source)
     print('Done\n')
     return data
+
+
+def load_raw_pheme(path):
+    """
+        Loads raw data from the PHEME dataset into an array storing a single branch of the tree at each index
+
+        :param path: full path to the raw PHEME data
+        :return: array of all branches in the dataset at the given data path
+        """
+    return pheme_loader.read_pheme(path)
 
 
 def load_raw_data(path, database):

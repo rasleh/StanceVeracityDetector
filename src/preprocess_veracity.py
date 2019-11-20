@@ -28,19 +28,23 @@ def get_database_variables(database, raw_data_path):
     if not raw_data_path:
         raw_path_switch = {
             'dast': '../../data/datasets/dast/raw/dataset/',
-            'twitter': '../../data/datasets/twitter/raw/loekke.txt'
+            'twitter': '../../data/datasets/twitter/raw/loekke.txt',
+            'pheme': '../../data/datasets/pheme/raw/'
         }
         raw_data_path = os.path.join(current_path, Path(raw_path_switch.get(database)))
 
     out_path_switch = {
         'dast': '../../data/datasets/dast/preprocessed/veracity/',
-        'twitter': '../../data/datasets/twitter/preprocessed/veracity/'
+        'twitter': '../../data/datasets/twitter/preprocessed/veracity/',
+        'pheme': '../../data/datasets/pheme/preprocessed/veracity/'
     }
     out_path = os.path.join(current_path, Path(out_path_switch.get(database)))
 
     veracity_path_switch = {
         'dast': '../../data/datasets/dast/raw/annotations/rumour_overview.txt',
-        'twitter': '../../data/datasets/twitter/raw/rumour_overview.txt'
+        'twitter': '../../data/datasets/twitter/raw/rumour_overview.txt',
+        'pheme': '../../data/datasets/pheme/raw/rumour_overview.txt'
+
     }
     veracity_path = os.path.join(current_path, Path(veracity_path_switch.get(database)))
 
@@ -132,7 +136,7 @@ if __name__ == '__main__':
     argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description='Preprocessing data for use in veracity prediction, defaults provided.')
-    parser.add_argument('-db', '--database', default='dast', help='Database type, either \'twitter\' or \'dast\'. ')
+    parser.add_argument('-db', '--database', default='dast', help='Database type, either \'twitter\', \'dast\' or \'pheme\'.')
     parser.add_argument('-ts', '--timestamps', default=True, help='Include timestamps as features')
     parser.add_argument('-dp', '--data_path', default=False, help='Path to raw data')
     parser.add_argument('-wo', '--write_out', default=True, help='Write preprocessed data to file?')
