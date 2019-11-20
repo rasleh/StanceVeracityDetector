@@ -103,13 +103,19 @@ def apply_tree_structure(source, reactions, conversation_folder):
 
 def read_all_tweets(base_directory: Path, language):
     annotations = load_annotations(base_directory, language)
-    data = []
-    for rumour_folder in base_directory.iterdir():
-        for conversation_folder in rumour_folder.iterdir():
-            folder_dir = base_directory / rumour_folder / conversation_folder
-            source, reactions = read_conversation(folder_dir)
-            reactions = append_annotations(reactions, annotations)
-            data.append(apply_tree_structure(source, reactions, conversation_folder))
+    with open(Path(base_directory / 'rumour_overview.txt'), mode='r', encoding='utf-8') as veracity_overview:
+        veracity_dict = {}
+        for line in veracity_overview:
+            veracity_dict[line.split('\t')[0]] = line.split('\t')[1]
+        data = []
+        for rumour_folder in base_directory.iterdir():
+            for conversation_folder in rumour_folder.iterdir():
+                folder_dir = base_directory / rumour_folder / conversation_folder
+                source, reactions = read_conversation(folder_dir)
+                reactions = append_annotations(reactions, annotations)
+                source['TruthStatus'] = veracity_dict[source['id_str']]
+                print(source['TruthStatus'])
+                data.append(apply_tree_structure(source, reactions, conversation_folder))
     return data
 
 
@@ -148,6 +154,3 @@ def generate_veracity_overview(path=default_pheme_path):
         rumour_overview.write('IDs\tVeracity\n')
         for source_id, veracity in veracity_dict.items():
             rumour_overview.write('{}\t{}\n'.format(source_id, veracity))
-
-
-generate_veracity_overview()
