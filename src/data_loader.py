@@ -98,7 +98,8 @@ def load_raw_data(path, database):
     """
     switch = {
         'dast': lambda: load_raw_dast(path),
-        'twitter': lambda: load_raw_twitter(path)
+        'twitter': lambda: load_raw_twitter(path),
+        'pheme': lambda: load_raw_pheme(path)
     }
     return switch.get(database)()
 
