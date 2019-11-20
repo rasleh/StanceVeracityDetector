@@ -33,9 +33,9 @@ def load_annotations(pheme_path, language):
             annotation_file = reaction_file.open(mode='r', encoding='utf-8')
             return create_annotation_dict(annotation_file)
 
-    err_msg = "No annotation file found for the given language {}"
+    err_msg = "No annotation file found in {} for the given language {}"
     raise RuntimeError(
-        err_msg.format(language))
+        err_msg.format(pheme_path, language))
 
 
 def read_tweet(tweet_file: Path):
@@ -102,26 +102,27 @@ def apply_tree_structure(source, reactions, conversation_folder):
 
 
 def read_all_tweets(base_directory: Path, language):
+    veracity_translator = {'0': 'False', '1': 'True', '2': 'Unverified'}
     annotations = load_annotations(base_directory, language)
+    thread_path = Path(base_directory) / "threads" / language
     with open(Path(base_directory / 'rumour_overview.txt'), mode='r', encoding='utf-8') as veracity_overview:
         veracity_dict = {}
         for line in veracity_overview:
-            veracity_dict[line.split('\t')[0]] = line.split('\t')[1]
+            veracity_dict[line.split('\t')[0]] = line.replace('\n', '').split('\t')[1]
         data = []
-        for rumour_folder in base_directory.iterdir():
+        for rumour_folder in thread_path.iterdir():
             for conversation_folder in rumour_folder.iterdir():
-                folder_dir = base_directory / rumour_folder / conversation_folder
+                folder_dir = thread_path / rumour_folder / conversation_folder
                 source, reactions = read_conversation(folder_dir)
                 reactions = append_annotations(reactions, annotations)
-                source['TruthStatus'] = veracity_dict[source['id_str']]
-                print(source['TruthStatus'])
+                # Exclude branches with no annotated datapoints
+                source['TruthStatus'] = veracity_translator[veracity_dict[source['id_str']]]
                 data.append(apply_tree_structure(source, reactions, conversation_folder))
     return data
 
 
 def read_pheme(path=default_pheme_path, language="en"):
-    pheme_path = path / "threads" / language
-    tweets = read_all_tweets(pheme_path, language)
+    tweets = read_all_tweets(Path(path), language)
     return tweets
 
 

@@ -22,7 +22,7 @@ def get_database_variables(database, raw_data_path):
     'dast' and 'twitter'. Defines raw data path, out path and path to overview of rumour veracities.
 
     :param raw_data_path: full path to the raw data
-    :param database: database type, currently supporting 'dast' and 'twitter'
+    :param database: database type, currently supporting 'dast', 'twitter' and 'pheme'
     :return: three database-specific variables; raw data path, out path and path to overview of rumour veracities
     """
     if not raw_data_path:
@@ -71,6 +71,62 @@ def write_preprocessed(data, out_path):
     print('Done')
 
 
+def preprocess_dast_branch(include_timestamp, branch, sdqc_dict):
+    if include_timestamp:
+        if len(branch) is 1:
+            branch_features = [[sdqc_dict[branch[0]['comment']['SDQC_Submission']], 0]]
+
+        else:
+            branch_features = []
+            latest = datetime.datetime.min
+            earliest = datetime.datetime.max
+            for comment in branch:
+                created = datetime.datetime.strptime(comment['comment']['created'], '%Y-%m-%dT%H:%M:%S')
+                if created < earliest:
+                    earliest = created
+                if created > latest:
+                    latest = created
+
+            for comment in branch:
+                created = datetime.datetime.strptime(comment['comment']['created'], '%Y-%m-%dT%H:%M:%S')
+                branch_features.append([sdqc_dict[comment['comment']['SDQC_Submission']],
+                                        (created - earliest) / (latest - earliest)])
+    else:
+        branch_features = [[sdqc_dict[x['comment']['SDQC_Submission']]] for x in branch]
+
+    return branch_features
+
+
+def preprocess_branch(include_timestamp, branch, sdqc_dict):
+    if include_timestamp:
+        if len(branch) is 1:
+            # Ignore unlabeled tuples
+            if branch[0]['SDQC_Submission'] == 'Underspecified':
+                return
+            branch_features = [[sdqc_dict[branch[0]['SDQC_Submission']], 0]]
+        else:
+            branch_features = []
+            latest = datetime.datetime.min
+            earliest = datetime.datetime.max
+            for comment in branch:
+                created = datetime.datetime.strptime(comment['created_at'], '%a %b %d %H:%M:%S %z %Y').replace(tzinfo=None)
+                if created < earliest:
+                    earliest = created
+                if created > latest:
+                    latest = created
+
+            for comment in branch:
+                created = datetime.datetime.strptime(comment['created_at'], '%a %b %d %H:%M:%S %z %Y').replace(tzinfo=None)
+                if comment['SDQC_Submission'] == 'Underspecified':
+                    continue
+                branch_features.append([sdqc_dict[comment['SDQC_Submission']],
+                                        (created - earliest) / (latest - earliest)])
+    else:
+        branch_features = [[sdqc_dict[x['SDQC_Submission']]] for x in branch if x['SDQC_Submission'] != 'Underspecified']
+
+    return branch_features
+
+
 def preprocess(database, data_path=False, write_out=False, include_timestamp=False, out_file_name='preprocessed.csv'):
     """
     Loads raw data at a given data path, extracts features to be used for veracity prediction, formats the data, and
@@ -96,34 +152,12 @@ def preprocess(database, data_path=False, write_out=False, include_timestamp=Fal
     for tree in raw_data:
         veracity = veracity_dict[tree[0]['TruthStatus']]
         for branch in tree[1:][1:]:  # Skips first message of each branch, as this is the source
-            if include_timestamp:
-                if len(branch) is 1:
-                    branch_features = [[sdqc_dict[branch[0]['comment']['SDQC_Submission']], 0]]
-                else:
-                    branch_features = []
-                    latest = datetime.datetime.min
-                    earliest = datetime.datetime.max
-                    for comment in branch:
-                        if database == 'dast':
-                            created = datetime.datetime.strptime(comment['comment']['created'], '%Y-%m-%dT%H:%M:%S')
-                        else:
-                            created = datetime.datetime.strptime(comment['created_at'], '%a %b %d %H:%M:%S %z %Y')
-                        if created < earliest:
-                            earliest = created
-                        if created > latest:
-                            latest = created
-
-                    for comment in branch:
-                        if database == 'dast':
-                            created = datetime.datetime.strptime(comment['comment']['created'], '%Y-%m-%dT%H:%M:%S')
-                        else:
-                            created = datetime.datetime.strptime(comment['created_at'], '%a %b %d %H:%M:%S %z %Y')
-
-                        branch_features.append([sdqc_dict[comment['comment']['SDQC_Submission']],
-                                                              (created-earliest)/(latest-earliest)])
+            if database == 'dast':
+                branch_features = preprocess_dast_branch(include_timestamp, branch, sdqc_dict)
             else:
-                branch_features = [[sdqc_dict[x['comment']['SDQC_Submission']]] for x in branch]
-            data.append((veracity, branch_features))
+                branch_features = preprocess_branch(include_timestamp, branch, sdqc_dict)
+            if branch_features and branch_features is not None:
+                data.append((veracity, branch_features))
 
     if write_out:
         out_path = os.path.join(out_path, out_file_name)
@@ -143,6 +177,6 @@ if __name__ == '__main__':
     parser.add_argument('-on', '--out_file_name', default='preprocessed.csv', help='Name of out file')
 
     args = parser.parse_args(argv)
-
+    args.timestamps = args.timestamps == 'True'
     preprocess(database=args.database, include_timestamp=args.timestamps, data_path=args.data_path,
                write_out=args.write_out, out_file_name=args.out_file_name)

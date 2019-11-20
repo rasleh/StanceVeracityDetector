@@ -1,7 +1,7 @@
 import csv
 import json
 import os
-import pheme_loader
+from src.pheme_loader import read_pheme
 
 
 """
@@ -96,7 +96,7 @@ def load_raw_pheme(path):
         :param path: full path to the raw PHEME data
         :return: array of all branches in the dataset at the given data path
         """
-    return pheme_loader.read_pheme(path)
+    return read_pheme(path)
 
 
 def load_raw_data(path, database):

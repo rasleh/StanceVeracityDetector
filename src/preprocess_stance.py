@@ -115,7 +115,7 @@ def get_branch_level_features(dataset, sdqc_parent, text, lexicon, sentiment, po
 
 
 def preprocess(database, data=False, sub=False, sdqc_parent=False, text=False, lexicon=False, sentiment=False,
-               pos=False, wembs=False, lstm_wembs=False, write_out=False, out_file_name='preprocessed.csv'):
+               pos=False, wembs=False, lstm_wembs=False, write_out=False, out_file_name='timestamps.csv'):
     """
     Loads raw data at a given data path, extracts features to be used for stance detection, formats the data, and
     returns the processed data. If so specified, saves the preprocessed data to a data file.
@@ -181,7 +181,7 @@ if __name__ == "__main__":
                                                                   'similarity across branches?')
     parser.add_argument('-le', '--lstm_wembs', default=True, help='Include LSTM-formatted word embedding features?')
     parser.add_argument('-wo', '--write_out', default=True, help='Write preprocessed data to file?')
-    parser.add_argument('-on', '--out_file_name', default='preprocessed.csv', help='Name of out file')
+    parser.add_argument('-on', '--out_file_name', default='timestamps.csv', help='Name of out file')
 
     args = parser.parse_args(argv)
 
