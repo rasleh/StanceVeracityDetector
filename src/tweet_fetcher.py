@@ -6,7 +6,7 @@ import configparser
 import tweepy
 
 current_path = os.path.abspath(__file__)
-ini_path = os.path.join(current_path, '../../data/twitter.ini')
+ini_path = os.path.join(current_path, '../../data/datasets/twitter/twitter.ini')
 raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/{}.txt'.format(datetime.today()))
 
 
@@ -147,14 +147,15 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
 
 def popular_search():
     popular_tweets = {}
-    cursor = 0
+    counter = 0
     for tweet in tweepy.Cursor(api.search, q='min_replies:10', result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100').items():
-        cursor += 1
+        counter += 1
         popular_tweets[tweet.id_str] = tweet
         all_tweets[tweet.id_str] = tweet
-        if cursor % 5 is 0:
+        if counter % 5 is 0:
             print('Scraped {} popular tweets. Latest tweet: {}'
                   .format(len(popular_tweets), tweet.created_at))
+            # BREAK SHOULD BE REMOVED WHEN RUNNING FULL DOWNLOAD
             break
 
     for tweet_id, tweet in popular_tweets.items():
