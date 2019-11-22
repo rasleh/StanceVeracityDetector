@@ -13,11 +13,12 @@ from sklearn.base import BaseEstimator
 from src import data_loader
 
 current_path = os.path.abspath(__file__)
-dast_veracity_path_timestamps = os.path.join(current_path, Path('../../../data/datasets/dast/preprocessed/veracity/preprocessed_timestamps.csv'))
-dast_veracity_path_no_timestamps = os.path.join(current_path, Path('../../../data/datasets/dast/preprocessed/veracity/preprocessed_no_timestamps.csv'))
+dast_veracity_path_timestamps = os.path.join(current_path, Path('../../../data/datasets/dast/preprocessed/veracity/timestamps.csv'))
+dast_veracity_path_no_timestamps = os.path.join(current_path, Path('../../../data/datasets/dast/preprocessed/veracity/no_timestamps.csv'))
 
 # lambda which flattens list of lists
 flatten = lambda l: [item for sublist in l for item in sublist]
+
 
 # TODO: Refactor and split file; one class-file containing only HMM logic, one script-file containing e.g. benchmarking,
 #  saving features and command-line client
@@ -118,8 +119,6 @@ class HMM(BaseEstimator):
         feature_vectors = [x[1] for x in data]
         predicted_labels = self.predict(feature_vectors)
         actual_labels = [x[0] for x in data]
-        print(predicted_labels)
-        print(actual_labels)
         if unverified_cast is not 'none':
             c_matrix = sk.confusion_matrix(actual_labels, predicted_labels, labels=[0, 1])
         else:
