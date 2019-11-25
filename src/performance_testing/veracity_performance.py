@@ -61,12 +61,12 @@ def load_datasets(unverified_cast):
     return pheme_ts, pheme_nts, dast_ts_splits, dast_nts_splits
 
 
-def update_metrics(performance, model, acc, f1):
+def update_metrics_dataset(performance, model, acc, f1):
     performance[model]['f1_macro'] += f1
     performance[model]['accuracy'] += acc
 
 
-def evaluate_for_splits(pheme_data, dast_data, unverified_cast):
+def evaluate_for_splits_dataset(pheme_data, dast_data, unverified_cast):
     pheme_model = hmm_veracity.HMM(2)
     pheme_model.fit(pheme_data)
 
@@ -78,17 +78,17 @@ def evaluate_for_splits(pheme_data, dast_data, unverified_cast):
 
     for split in dast_data:
         _, acc, f1_macro, _ = pheme_model.test(split[1], unverified_cast)
-        update_metrics(performance, 'pheme', acc, f1_macro)
+        update_metrics_dataset(performance, 'pheme', acc, f1_macro)
 
         dastpheme_model = pheme_model
         dastpheme_model.fit(split[0])
         _, acc, f1_macro, _ = dastpheme_model.test(split[1], unverified_cast)
-        update_metrics(performance, 'dastpheme', acc, f1_macro)
+        update_metrics_dataset(performance, 'dastpheme', acc, f1_macro)
 
         dast_model = hmm_veracity.HMM(2)
         dast_model.fit(split[0])
         _, acc, f1_macro, _ = dast_model.test(split[1], unverified_cast)
-        update_metrics(performance, 'dast', acc, f1_macro)
+        update_metrics_dataset(performance, 'dast', acc, f1_macro)
 
     for dataset, results in performance.items():
         for metric, value in results.items():
@@ -97,13 +97,13 @@ def evaluate_for_splits(pheme_data, dast_data, unverified_cast):
     return performance
 
 
-def evaluate_performance(unverified_cast):
+def evaluate_dataset_performance(unverified_cast):
     pheme_ts, pheme_nts, dast_ts_splits, dast_nts_splits = load_datasets(unverified_cast)
 
     # Hide abundance of print statements for hmm_veracity.test()
     with HiddenPrints():
-        ts_performance = evaluate_for_splits(pheme_ts, dast_ts_splits, unverified_cast)
-        nts_performance = evaluate_for_splits(pheme_nts, dast_nts_splits, unverified_cast)
+        ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts_splits, unverified_cast)
+        nts_performance = evaluate_for_splits_dataset(pheme_nts, dast_nts_splits, unverified_cast)
 
     with open('veracity.csv', mode='w', encoding='utf-8') as out_file:
         out_file.write('model;f1_macro;accuracy\n')
@@ -114,4 +114,89 @@ def evaluate_performance(unverified_cast):
             out_file.write('{};{:.2f};{:.2f}\n'.format(dataset, results['f1_macro'], results['accuracy']))
 
 
-evaluate_performance('true')
+def update_metrics_length(performance, model, length, acc, f1):
+    performance[model][length]['f1_macro'] += f1
+    performance[model][length]['accuracy'] += acc
+
+
+def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast):
+    pheme_model = hmm_veracity.HMM(2)
+    pheme_model.fit(pheme_data)
+
+    performance = {
+        'dast': {
+            1: {'f1_macro': 0.0, 'accuracy': 0.0},
+            2: {'f1_macro': 0.0, 'accuracy': 0.0},
+            3: {'f1_macro': 0.0, 'accuracy': 0.0},
+            4: {'f1_macro': 0.0, 'accuracy': 0.0}
+        },
+        'pheme': {
+            1: {'f1_macro': 0.0, 'accuracy': 0.0},
+            2: {'f1_macro': 0.0, 'accuracy': 0.0},
+            3: {'f1_macro': 0.0, 'accuracy': 0.0},
+            4: {'f1_macro': 0.0, 'accuracy': 0.0}
+        },
+        'dastpheme': {
+            1: {'f1_macro': 0.0, 'accuracy': 0.0},
+            2: {'f1_macro': 0.0, 'accuracy': 0.0},
+            3: {'f1_macro': 0.0, 'accuracy': 0.0},
+            4: {'f1_macro': 0.0, 'accuracy': 0.0}
+        },
+    }
+
+    length_count = {1: 0, 2: 0, 3: 0, 4: 0}
+
+    for split in dast_data:
+        length_seperated_data = {1: [], 2: [], 3: [], 4: []}
+        for branch in split[0]:
+            if len(branch) not in length_seperated_data:
+                length_seperated_data[4].append(branch)
+                length_count[4] += 1
+            else:
+                length_seperated_data[len(branch)].append(branch)
+                length_count[len(branch)] += 1
+
+        dastpheme_model = pheme_model
+        dastpheme_model.fit(split[0])
+
+        dast_model = hmm_veracity.HMM(2)
+        dast_model.fit(split[0])
+
+        for length, data in length_seperated_data.items():
+            _, acc, f1_macro, _ = pheme_model.test(data, unverified_cast)
+            update_metrics_length(performance, 'pheme', length, acc, f1_macro)
+
+            _, acc, f1_macro, _ = dastpheme_model.test(data, unverified_cast)
+            update_metrics_length(performance, 'dastpheme', length, acc, f1_macro)
+
+            _, acc, f1_macro, _ = dast_model.test(data, unverified_cast)
+            update_metrics_length(performance, 'dast', length, acc, f1_macro)
+
+    for dataset, results in performance.items():
+        for length, metrics in results.items():
+            for metric, value in metrics.items():
+                performance[dataset][length][metric] = value / length_count[length]
+
+    return performance
+
+
+def evaluate_thread_length_performance(unverified_cast):
+    pheme_ts, pheme_nts, dast_ts_splits, dast_nts_splits = load_datasets(unverified_cast)
+
+    with HiddenPrints():
+        ts_performance = evaluate_for_splits_length(pheme_ts, dast_ts_splits, unverified_cast)
+        nts_performance = evaluate_for_splits_length(pheme_nts, dast_nts_splits, unverified_cast)
+
+    with open('veracity.csv', mode='w', encoding='utf-8') as out_file:
+        out_file.write('model;length;f1_macro;accuracy\n')
+        for dataset, results in ts_performance.items():
+            for length, metrics in results.items():
+                out_file.write('{};{:.2f};{:.2f}\n'.format(dataset+'_ts', length, results[length]['f1_macro'], results[length]['accuracy']))
+
+        for dataset, results in nts_performance.items():
+            for length, metrics in results.items():
+                out_file.write('{};{:.2f};{:.2f}\n'.format(dataset + '_ts', length, results[length]['f1_macro'],
+                                                           results[length]['accuracy']))
+
+
+evaluate_thread_length_performance('true')
