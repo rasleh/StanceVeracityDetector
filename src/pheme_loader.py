@@ -101,28 +101,32 @@ def apply_tree_structure(source, reactions, conversation_folder):
     return tree
 
 
-def read_all_tweets(base_directory: Path, language):
+def read_all_tweets(base_directory: Path):
     veracity_translator = {'0': 'False', '1': 'True', '2': 'Unverified'}
-    annotations = load_annotations(base_directory, language)
-    thread_path = Path(base_directory) / "threads" / language
-    with open(Path(base_directory / 'rumour_overview.txt'), mode='r', encoding='utf-8') as veracity_overview:
-        veracity_dict = {}
-        for line in veracity_overview:
-            veracity_dict[line.split('\t')[0]] = line.replace('\n', '').split('\t')[1]
-        data = []
-        for rumour_folder in thread_path.iterdir():
-            for conversation_folder in rumour_folder.iterdir():
-                folder_dir = thread_path / rumour_folder / conversation_folder
-                source, reactions = read_conversation(folder_dir)
-                reactions = append_annotations(reactions, annotations)
-                # Exclude branches with no annotated datapoints
-                source['TruthStatus'] = veracity_translator[veracity_dict[source['id_str']]]
-                data.append(apply_tree_structure(source, reactions, conversation_folder))
+    languages = ['en', 'de']
+    annotations = {}
+    data = []
+    for language in languages:
+        annotations.update(load_annotations(base_directory, language))
+    for language in languages:
+        thread_path = Path(base_directory) / "threads" / language
+        with open(Path(base_directory / 'rumour_overview.txt'), mode='r', encoding='utf-8') as veracity_overview:
+            veracity_dict = {}
+            for line in veracity_overview:
+                veracity_dict[line.split('\t')[0]] = line.replace('\n', '').split('\t')[1]
+            for rumour_folder in thread_path.iterdir():
+                for conversation_folder in rumour_folder.iterdir():
+                    folder_dir = thread_path / rumour_folder / conversation_folder
+                    source, reactions = read_conversation(folder_dir)
+                    reactions = append_annotations(reactions, annotations)
+                    # Exclude branches with no annotated datapoints
+                    source['TruthStatus'] = veracity_translator[veracity_dict[source['id_str']]]
+                    data.append(apply_tree_structure(source, reactions, conversation_folder))
     return data
 
 
-def read_pheme(path=default_pheme_path, language="en"):
-    tweets = read_all_tweets(Path(path), language)
+def read_pheme(path=default_pheme_path):
+    tweets = read_all_tweets(Path(path))
     return tweets
 
 

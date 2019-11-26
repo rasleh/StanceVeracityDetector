@@ -170,13 +170,12 @@ if __name__ == '__main__':
     argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description='Preprocessing data for use in veracity prediction, defaults provided.')
-    parser.add_argument('-db', '--database', default='dast', help='Database type, either \'twitter\', \'dast\' or \'pheme\'.')
+    parser.add_argument('-db', '--database', default='pheme', help='Database type, either \'twitter\', \'dast\' or \'pheme\'.')
     parser.add_argument('-ts', '--timestamps', default=True, help='Include timestamps as features')
     parser.add_argument('-dp', '--data_path', default=False, help='Path to raw data')
     parser.add_argument('-wo', '--write_out', default=True, help='Write preprocessed data to file?')
     parser.add_argument('-on', '--out_file_name', default='preprocessed.csv', help='Name of out file')
 
     args = parser.parse_args(argv)
-    args.timestamps = args.timestamps == 'True'
     preprocess(database=args.database, include_timestamp=args.timestamps, data_path=args.data_path,
                write_out=args.write_out, out_file_name=args.out_file_name)
