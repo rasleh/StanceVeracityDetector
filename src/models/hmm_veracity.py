@@ -71,7 +71,8 @@ class HMM(BaseEstimator):
         for veracity_label, sdqc_labels in classes.items():
             lengths = [len(x) for x in sdqc_labels]
             thread_flat = np.array(flatten(sdqc_labels)).reshape(-1, feature_count)
-            self.models[veracity_label] = hmm.GaussianHMM(n_components=self.components).fit(thread_flat,
+            if veracity_label not in self.models:
+                self.models[veracity_label] = hmm.GaussianHMM(n_components=self.components).fit(thread_flat,
                                                                                             lengths=lengths)
         return self
 

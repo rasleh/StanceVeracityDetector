@@ -4,6 +4,7 @@ import sys
 from src.data_loader import load_veracity
 from src.models import hmm_veracity
 import random
+import copy
 
 current_path = os.path.abspath(__file__)
 pheme_data_path = os.path.join(current_path, '../../../data/datasets/pheme/preprocessed/veracity/')
@@ -80,8 +81,8 @@ def evaluate_for_splits_dataset(pheme_data, dast_data, unverified_cast):
         _, acc, f1_macro, _ = pheme_model.test(split[1], unverified_cast)
         update_metrics_dataset(performance, 'pheme', acc, f1_macro)
 
-        dastpheme_model = pheme_model
-        dastpheme_model.fit(split[0])
+        dastpheme_model = hmm_veracity.HMM(2)
+        dastpheme_model.fit(pheme_data + split[0])
         _, acc, f1_macro, _ = dastpheme_model.test(split[1], unverified_cast)
         update_metrics_dataset(performance, 'dastpheme', acc, f1_macro)
 
@@ -144,38 +145,36 @@ def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast):
         },
     }
 
-    length_count = {1: 0, 2: 0, 3: 0, 4: 0}
 
     for split in dast_data:
         length_seperated_data = {1: [], 2: [], 3: [], 4: []}
         for branch in split[0]:
-            if len(branch) not in length_seperated_data:
+            if len(branch[1]) not in length_seperated_data:
                 length_seperated_data[4].append(branch)
-                length_count[4] += 1
             else:
-                length_seperated_data[len(branch)].append(branch)
-                length_count[len(branch)] += 1
+                length_seperated_data[len(branch[1])].append(branch)
 
-        dastpheme_model = pheme_model
-        dastpheme_model.fit(split[0])
+        dastpheme_model = hmm_veracity.HMM(2)
+        dastpheme_model.fit(pheme_data + split[0])
 
         dast_model = hmm_veracity.HMM(2)
         dast_model.fit(split[0])
 
         for length, data in length_seperated_data.items():
-            _, acc, f1_macro, _ = pheme_model.test(data, unverified_cast)
-            update_metrics_length(performance, 'pheme', length, acc, f1_macro)
+            if data:
+                _, acc, f1_macro, _ = pheme_model.test(data, unverified_cast)
+                update_metrics_length(performance, 'pheme', length, acc, f1_macro)
 
-            _, acc, f1_macro, _ = dastpheme_model.test(data, unverified_cast)
-            update_metrics_length(performance, 'dastpheme', length, acc, f1_macro)
+                _, acc, f1_macro, _ = dastpheme_model.test(data, unverified_cast)
+                update_metrics_length(performance, 'dastpheme', length, acc, f1_macro)
 
-            _, acc, f1_macro, _ = dast_model.test(data, unverified_cast)
-            update_metrics_length(performance, 'dast', length, acc, f1_macro)
+                _, acc, f1_macro, _ = dast_model.test(data, unverified_cast)
+                update_metrics_length(performance, 'dast', length, acc, f1_macro)
 
     for dataset, results in performance.items():
         for length, metrics in results.items():
             for metric, value in metrics.items():
-                performance[dataset][length][metric] = value / length_count[length]
+                performance[dataset][length][metric] = value / len(dast_data)
 
     return performance
 
@@ -191,12 +190,12 @@ def evaluate_thread_length_performance(unverified_cast):
         out_file.write('model;length;f1_macro;accuracy\n')
         for dataset, results in ts_performance.items():
             for length, metrics in results.items():
-                out_file.write('{};{:.2f};{:.2f}\n'.format(dataset+'_ts', length, results[length]['f1_macro'], results[length]['accuracy']))
+                out_file.write('{};{};{:.2f};{:.2f}\n'.format(dataset+'_ts', length, results[length]['f1_macro'], results[length]['accuracy']))
 
         for dataset, results in nts_performance.items():
             for length, metrics in results.items():
-                out_file.write('{};{:.2f};{:.2f}\n'.format(dataset + '_ts', length, results[length]['f1_macro'],
+                out_file.write('{};{};{:.2f};{:.2f}\n'.format(dataset + '_nts', length, results[length]['f1_macro'],
                                                            results[length]['accuracy']))
 
 
-evaluate_thread_length_performance('true')
+evaluate_dataset_performance('true')

@@ -1,7 +1,0 @@
-model;f1_macro;accuracy
-dast_ts;0.49;0.77
-pheme_ts;0.48;0.77
-dastpheme_ts;0.49;0.77
-dast;0.49;0.77
-pheme;0.48;0.77
-dastpheme;0.49;0.77
