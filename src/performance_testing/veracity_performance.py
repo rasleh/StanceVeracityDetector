@@ -23,14 +23,30 @@ class HiddenPrints:
         sys.stdout = self._original_stdout
 
 
-def load_datasets(unverified_cast):
+def format_data(pheme_ts, pheme_nts, dast_ts, dast_nts, testdata_type):
+    dast_ts = cross_validation_splits(dast_ts, 5)
+    dast_nts = cross_validation_splits(dast_nts, 5)
+
+    if testdata_type == 'dastpheme':
+        pheme_ts = cross_validation_splits(pheme_ts, 5)
+        pheme_nts = cross_validation_splits(pheme_nts, 5)
+
+    elif testdata_type != 'dast':
+        err_msg = "Unrecognized test_dataset type {}, please use 'dast' or 'dastpheme'"
+        raise RuntimeError(
+            err_msg.format(testdata_type))
+
+    return pheme_ts, pheme_nts, dast_ts, dast_nts
+
+
+def load_datasets(unverified_cast, testdata_type):
     """Loads the relevant datasets used for testing of veracity performance"""
     pheme_ts = load_veracity(os.path.join(pheme_data_path, 'timestamps.csv'), unverified_cast)
     pheme_nts = load_veracity(os.path.join(pheme_data_path, 'no_timestamps.csv'), unverified_cast)
 
     dast_ts = load_veracity(os.path.join(dast_data_path, 'timestamps.csv'), unverified_cast)
     dast_nts = load_veracity(os.path.join(dast_data_path, 'no_timestamps.csv'), unverified_cast)
-    return pheme_ts, pheme_nts, dast_ts, dast_nts
+    return format_data(pheme_ts, pheme_nts, dast_ts, dast_nts, testdata_type)
 
 
 def cross_validation_splits(dataset, no_splits):
@@ -40,7 +56,7 @@ def cross_validation_splits(dataset, no_splits):
     :param dataset: an array which, at each index, contains a tuple, with the veracity of a claim at 0 and an array
     containing the features at index 1
     :param no_splits: The number of partitions the dataset should be split into
-    :return: an array of dimensions (no_splits x 2 (representing train and test data) x len(train) or len(test)
+    :return: an array of dimensions (no_splits x 2 (train data at 0 and test data at 1) x len(train) or len(test))
     """
     splits = []
     random.shuffle(dataset)
@@ -57,23 +73,6 @@ def cross_validation_splits(dataset, no_splits):
     return splits
 
 
-def format_data(pheme_ts, pheme_nts, dast_ts, dast_nts, test_dataset):
-    if test_dataset == 'dast':
-        ts_data = (pheme_ts, cross_validation_splits(dast_ts, 5))
-        nts_data = (pheme_nts, cross_validation_splits(dast_nts, 5))
-
-    elif test_dataset == 'dastpheme':
-        ts_data = cross_validation_splits(dast_ts + pheme_ts, 5)
-        nts_data = cross_validation_splits(dast_nts + pheme_nts, 5)
-
-    else:
-        err_msg = "Unrecognized test_dataset type {}, please use 'dast' or 'dastpheme'"
-        raise RuntimeError(
-            err_msg.format(test_dataset))
-
-    return ts_data, nts_data
-
-
 def update_metrics(performance, model, acc, f1, branch_length):
     if branch_length:
         performance[model][branch_length]['f1_macro'] += f1
@@ -83,65 +82,56 @@ def update_metrics(performance, model, acc, f1, branch_length):
         performance[model]['accuracy'] += acc
 
 
-def evaluate_for_splits_dataset_test(data, unverified_cast, test_dataset):
-    performance = {}
+def test_setup(pheme_data, testdata_type, empty_performance):
+    performance = {x: copy.deepcopy(empty_performance) for x in ['pheme', 'dastpheme', 'dast']}
     models = {}
-
-    if test_dataset == 'dast':
-        pheme_data = data[0]
-        split_data = data[1]
+    if testdata_type == 'dast':
         models['pheme'] = hmm_veracity.HMM(2).fit(pheme_data)
+    return performance, models
 
-        performance['pheme'] = {'f1_macro': 0.0, 'accuracy': 0.0}
-        performance['dastpheme'] = {'f1_macro': 0.0, 'accuracy': 0.0}
-        performance['dast'] = {'f1_macro': 0.0, 'accuracy': 0.0}
+
+def split_setup(split_index, testdata_type, dast_data, pheme_data, models):
+    if testdata_type == 'dast':
+        test_data = dast_data[split_index][1]
+        models['dastpheme'] = hmm_veracity.HMM(2).fit(pheme_data + dast_data[split_index][0])
+        models['dast'] = hmm_veracity.HMM(2).fit(dast_data[split_index][0])
+
     else:
-        split_data = data
+        test_data = dast_data[split_index][1] + pheme_data[split_index][1]
+        models['pheme'] = hmm_veracity.HMM(2).fit(pheme_data[split_index][0])
+        models['dastpheme'] = hmm_veracity.HMM(2).fit(pheme_data[split_index][0] + dast_data[split_index][0])
+        models['dast'] = hmm_veracity.HMM(2).fit(dast_data[split_index][0])
+    return models, test_data
 
-    for split in split_data:
-        if test_dataset == 'dast':
-            models['dastpheme'] = hmm_veracity.HMM(2).fit(pheme_data + split[0])
-            models['dast'] = hmm_veracity.HMM(2).fit(split[0])
+
+def evaluate_for_splits_dataset(pheme_data, dast_data, unverified_cast, testdata_type):
+    empty_performance = {'f1_macro': 0.0, 'accuracy': 0.0}
+    performance, models = test_setup(pheme_data, testdata_type, empty_performance)
+
+    for i in range(len(dast_data)):
+        models, test_data = split_setup(i, testdata_type, dast_data, pheme_data, models)
 
         for model_name, model in models.items():
-            _, acc, f1_macro, _ = model.test(split[1], unverified_cast)
+            _, acc, f1_macro, _ = model.test(test_data, unverified_cast)
             update_metrics(performance, model_name, acc, f1_macro, branch_length=False)
 
     for dataset, results in performance.items():
         for metric, value in results.items():
-            performance[dataset][metric] = value / len(split_data)
+            performance[dataset][metric] = value / len(dast_data)
 
     return performance
 
 
-def evaluate_for_splits_length(data, unverified_cast, test_dataset):
-    performance = {}
-    empty_performance = {
-            1: {'f1_macro': 0.0, 'accuracy': 0.0},
-            2: {'f1_macro': 0.0, 'accuracy': 0.0},
-            3: {'f1_macro': 0.0, 'accuracy': 0.0},
-            4: {'f1_macro': 0.0, 'accuracy': 0.0},
-            6: {'f1_macro': 0.0, 'accuracy': 0.0},
-            8: {'f1_macro': 0.0, 'accuracy': 0.0},
-            10: {'f1_macro': 0.0, 'accuracy': 0.0},
-        }
+def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast, testdata_type):
+    empty_performance = {x: {'f1_macro': 0.0, 'accuracy': 0.0} for x in [1, 2, 3, 4, 6, 8, 10]}
+    performance, models = test_setup(pheme_data, testdata_type, empty_performance)
 
-    models = {}
-
-    if test_dataset == 'dast':
-        pheme_data = data[0]
-        split_data = data[1]
-        models['pheme'] = hmm_veracity.HMM(2).fit(pheme_data)
-
-        performance['pheme'] = copy.deepcopy(empty_performance)
-        performance['dastpheme'] = copy.deepcopy(empty_performance)
-        performance['dast'] = copy.deepcopy(empty_performance)
-    else:
-        split_data = data
-
-    for split in split_data:
+    for i in range(len(dast_data)):
         length_separated_data = {1: [], 2: [], 3: [], 4: [], 6: [], 8: [], 10: []}
-        for branch in split[1]:
+
+        models, test_data = split_setup(i, testdata_type, dast_data, pheme_data, models)
+
+        for branch in test_data:
             if len(branch[1]) in length_separated_data:
                 length_separated_data[len(branch[1])].append(branch)
             elif len(branch[1]) == 5:
@@ -153,10 +143,6 @@ def evaluate_for_splits_length(data, unverified_cast, test_dataset):
             elif len(branch[1]) >= 10:
                 length_separated_data[10].append(branch)
 
-        if test_dataset == 'dast':
-            models['dastpheme'] = hmm_veracity.HMM(2).fit(pheme_data + split[0])
-            models['dast'] = hmm_veracity.HMM(2).fit(split[0])
-
         for length, datapoints in length_separated_data.items():
             if datapoints:
                 for model_name, model in models.items():
@@ -166,7 +152,7 @@ def evaluate_for_splits_length(data, unverified_cast, test_dataset):
     for dataset, results in performance.items():
         for length, metrics in results.items():
             for metric, value in metrics.items():
-                performance[dataset][length][metric] = value / len(split_data)
+                performance[dataset][length][metric] = value / len(dast_data)
 
     return performance
 
@@ -195,17 +181,16 @@ def write_out(include_branch_length, ts_performance, nts_performance, out_path='
 
 
 def evaluate_performance(unverified_cast, include_branch_length=False, testdata_type='dast'):
-    pheme_ts, pheme_nts, dast_ts, dast_nts = load_datasets(unverified_cast)
-    ts_data, nts_data = format_data(pheme_ts, pheme_nts, dast_ts, dast_nts, testdata_type)
+    pheme_ts, pheme_nts, dast_ts, dast_nts = load_datasets(unverified_cast, testdata_type)
 
     if include_branch_length:
-        ts_performance = evaluate_for_splits_length(ts_data, unverified_cast, testdata_type)
-        nts_performance = evaluate_for_splits_length(nts_data, unverified_cast, testdata_type)
+        ts_performance = evaluate_for_splits_length(pheme_ts, dast_ts, unverified_cast, testdata_type)
+        nts_performance = evaluate_for_splits_length(pheme_nts, dast_nts, unverified_cast, testdata_type)
     else:
-        ts_performance = evaluate_for_splits_dataset_test(ts_data, unverified_cast, testdata_type)
-        nts_performance = evaluate_for_splits_dataset_test(nts_data, unverified_cast, testdata_type)
+        ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts, unverified_cast, testdata_type)
+        nts_performance = evaluate_for_splits_dataset(pheme_nts, dast_nts, unverified_cast, testdata_type)
 
     write_out(include_branch_length, ts_performance, nts_performance)
 
 
-evaluate_performance('true', include_branch_length=False, testdata_type='dast')
+evaluate_performance('true', include_branch_length=True, testdata_type='dastpheme')
