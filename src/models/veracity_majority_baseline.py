@@ -10,6 +10,7 @@ class VeracityMajorityBaseline:
     def fit(self, data):
         output_values = [row[0] for row in data]
         self.prediction = max(set(output_values), key=output_values.count)
+        return self
 
     def predict(self, data):
         return [self.prediction for i in range(len(data))]

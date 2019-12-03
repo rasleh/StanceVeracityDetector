@@ -169,6 +169,8 @@ def write_out(include_branch_length, ts_performance, nts_performance, out_path='
         if include_branch_length:
             out_file.write('model;length;f1_macro;accuracy\n')
             for dataset, results in ts_performance.items():
+                if 'majority' in dataset:
+                    continue
                 for length, metrics in results.items():
                     out_file.write('{};{};{:.2f};{:.2f}\n'.format(dataset + '_ts', length, results[length]['f1_macro'],
                                                                   results[length]['accuracy']))
@@ -181,6 +183,8 @@ def write_out(include_branch_length, ts_performance, nts_performance, out_path='
         else:
             out_file.write('model;f1_macro;accuracy\n')
             for dataset, results in ts_performance.items():
+                if 'majority' in dataset:
+                    continue
                 out_file.write('{};{:.2f};{:.2f}\n'.format(dataset + '_ts', results['f1_macro'], results['accuracy']))
 
             for dataset, results in nts_performance.items():
@@ -200,5 +204,5 @@ def evaluate_performance(unverified_cast, remove_commenting, include_branch_leng
     write_out(include_branch_length, ts_performance, nts_performance)
 
 
-evaluate_performance(unverified_cast='true', remove_commenting=True, include_branch_length=True,
-                     testdata_type='dast')
+evaluate_performance(unverified_cast='true', remove_commenting=False, include_branch_length=False,
+                     testdata_type='dastpheme', model_type='multinomial')
