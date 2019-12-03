@@ -187,7 +187,7 @@ def main(argv):
             'Please specify whether and how unverified rumours should be cast, either \'true\', \'false\' or \'none\'')
         return
 
-    data = data_loader.load_veracity(args.data_path, args.unverified_cast)
+    data = data_loader.load_veracity(args.data_path, args.unverified_cast, args.remove_commenting)
     test_data, train_data = split_test_train(data, 0.2)
     model = HMM(2)
     model.fit(train_data)
