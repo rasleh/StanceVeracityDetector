@@ -39,13 +39,13 @@ def format_data(pheme_ts, pheme_nts, dast_ts, dast_nts, testdata_type):
     return pheme_ts, pheme_nts, dast_ts, dast_nts
 
 
-def load_datasets(unverified_cast, testdata_type):
+def load_datasets(unverified_cast, testdata_type, remove_commenting):
     """Loads the relevant datasets used for testing of veracity performance"""
-    pheme_ts = load_veracity(os.path.join(pheme_data_path, 'timestamps.csv'), unverified_cast)
-    pheme_nts = load_veracity(os.path.join(pheme_data_path, 'no_timestamps.csv'), unverified_cast)
+    pheme_ts = load_veracity(os.path.join(pheme_data_path, 'timestamps.csv'), unverified_cast, remove_commenting)
+    pheme_nts = load_veracity(os.path.join(pheme_data_path, 'no_timestamps.csv'), unverified_cast, remove_commenting)
 
-    dast_ts = load_veracity(os.path.join(dast_data_path, 'timestamps.csv'), unverified_cast)
-    dast_nts = load_veracity(os.path.join(dast_data_path, 'no_timestamps.csv'), unverified_cast)
+    dast_ts = load_veracity(os.path.join(dast_data_path, 'timestamps.csv'), unverified_cast, remove_commenting)
+    dast_nts = load_veracity(os.path.join(dast_data_path, 'no_timestamps.csv'), unverified_cast, remove_commenting)
     return format_data(pheme_ts, pheme_nts, dast_ts, dast_nts, testdata_type)
 
 

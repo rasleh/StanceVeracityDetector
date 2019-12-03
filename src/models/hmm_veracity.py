@@ -172,6 +172,8 @@ def main(argv):
                         help='Include normalized timestamps of comments as features?')
     parser.add_argument('-dp', '--data_path', default=None,
                         help='Path to data file relative to hmm_veracity.py script, DAST dataset is used as default')
+    parser.add_argument('-rc', '--remove_commenting', default=False,
+                        help='Remove tweets with \'commenting\' SDQC value from data')
 
     args = parser.parse_args(argv)
 

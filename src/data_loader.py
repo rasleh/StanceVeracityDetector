@@ -1,6 +1,8 @@
 import csv
 import json
 import os
+from pathlib import Path
+
 from src.pheme_loader import read_pheme
 
 
@@ -150,7 +152,7 @@ def load_dast_lstm(path):
     return data
 
 
-def load_veracity(path, unverified_cast):
+def load_veracity(path, unverified_cast, remove_commenting):
     """
     Loads preprocessed veracity data from a given data path, and allows casting unverified rumour as either "true" or
     "false". Data at "path" is expected to be a two-column CSV file. At the first column should be the veracity status
@@ -170,11 +172,16 @@ def load_veracity(path, unverified_cast):
         for line in file:
             veracity, feature_vector = line.replace('\n', '').split('\t')
             feature_vector = feature_vector.replace('[[', '').replace(']]', '').split('], [')
+            if remove_commenting:
+                feature_vector = [[float(y) for y in x.split(', ')] for x in feature_vector if x.split(', ')[0] != '3']
+            else:
+                feature_vector = [[float(y) for y in x.split(', ')] for x in feature_vector]
             if veracity == '2':
                 if unverified_cast == 'true':
                     veracity = 1
                 elif unverified_cast == 'false':
                     veracity = 0
-            data.append((int(veracity), [[float(y) for y in x.split(', ')] for x in feature_vector]))
+            if feature_vector:
+                data.append((int(veracity), feature_vector))
     print('Completed data load')
     return data
