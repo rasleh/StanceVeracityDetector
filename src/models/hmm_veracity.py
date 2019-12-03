@@ -42,7 +42,12 @@ class HMM(BaseEstimator):
         returns the results
     """
 
-    def __init__(self, components):
+    def __init__(self, components, model_type):
+        if model_type not in ['gaussian', 'multinomial']:
+            err_msg = "Unrecognized HMM model type: {}, please use 'gaussian' or 'multinomial'"
+            raise RuntimeError(
+                err_msg.format(model_type))
+        self.model_type = model_type
         self.components = components
         self.models = dict()
 
@@ -72,8 +77,12 @@ class HMM(BaseEstimator):
             lengths = [len(x) for x in sdqc_labels]
             thread_flat = np.array(flatten(sdqc_labels)).reshape(-1, feature_count)
             if veracity_label not in self.models:
-                self.models[veracity_label] = hmm.GaussianHMM(n_components=self.components).fit(thread_flat,
+                if self.model_type == 'gaussian':
+                    self.models[veracity_label] = hmm.GaussianHMM(n_components=self.components).fit(thread_flat,
                                                                                             lengths=lengths)
+                else:
+                    self.models[veracity_label] = hmm.MultinomialHMM(n_components=self.components).fit(thread_flat,
+                                                                                                    lengths=lengths)
         return self
 
     def predict(self, data):
@@ -174,6 +183,8 @@ def main(argv):
                         help='Path to data file relative to hmm_veracity.py script, DAST dataset is used as default')
     parser.add_argument('-rc', '--remove_commenting', default=False,
                         help='Remove tweets with \'commenting\' SDQC value from data')
+    parser.add_argument('-hv', '--hmm_version', default='gaussian',
+                        help='Applied HMM implementation from hmmlearn; gaussian by default, \'multinomial\' available')
 
     args = parser.parse_args(argv)
 
@@ -189,7 +200,7 @@ def main(argv):
 
     data = data_loader.load_veracity(args.data_path, args.unverified_cast, args.remove_commenting)
     test_data, train_data = split_test_train(data, 0.2)
-    model = HMM(2)
+    model = HMM(2, args.hmm_version)
     model.fit(train_data)
     class_acc, acc, f1_macro, f1_micro = model.test(test_data, args.unverified_cast)
 

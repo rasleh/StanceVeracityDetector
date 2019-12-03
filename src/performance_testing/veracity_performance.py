@@ -2,7 +2,7 @@ import os
 import sys
 
 from src.data_loader import load_veracity
-from src.models import hmm_veracity
+from src.models import hmm_veracity, veracity_majority_baseline
 import random
 import copy
 
@@ -31,16 +31,16 @@ def format_data(pheme_ts, pheme_nts, dast_ts, dast_nts, testdata_type):
         pheme_ts = cross_validation_splits(pheme_ts, 5)
         pheme_nts = cross_validation_splits(pheme_nts, 5)
 
-    elif testdata_type != 'dast':
-        err_msg = "Unrecognized test_dataset type {}, please use 'dast' or 'dastpheme'"
-        raise RuntimeError(
-            err_msg.format(testdata_type))
-
     return pheme_ts, pheme_nts, dast_ts, dast_nts
 
 
 def load_datasets(unverified_cast, testdata_type, remove_commenting):
     """Loads the relevant datasets used for testing of veracity performance"""
+    if testdata_type not in ['dast', 'dastpheme']:
+        err_msg = "Unrecognized test_dataset type {}, please use 'dast' or 'dastpheme'"
+        raise RuntimeError(
+            err_msg.format(testdata_type))
+
     pheme_ts = load_veracity(os.path.join(pheme_data_path, 'timestamps.csv'), unverified_cast, remove_commenting)
     pheme_nts = load_veracity(os.path.join(pheme_data_path, 'no_timestamps.csv'), unverified_cast, remove_commenting)
 
@@ -82,34 +82,41 @@ def update_metrics(performance, model, acc, f1, branch_length):
         performance[model]['accuracy'] += acc
 
 
-def test_setup(pheme_data, testdata_type, empty_performance):
-    performance = {x: copy.deepcopy(empty_performance) for x in ['pheme', 'dastpheme', 'dast']}
+def test_setup(pheme_data, testdata_type, empty_performance, model_type):
+    performance = {x: copy.deepcopy(empty_performance) for x in ['pheme', 'dastpheme', 'dast', 'dast_majority',
+                                                                 'pheme_majority', 'dastpheme_majority']}
     models = {}
     if testdata_type == 'dast':
-        models['pheme'] = hmm_veracity.HMM(2).fit(pheme_data)
+        models['pheme'] = hmm_veracity.HMM(2, model_type).fit(pheme_data)
+        models['pheme_majority'] = veracity_majority_baseline.VeracityMajorityBaseline().fit(pheme_data)
     return performance, models
 
 
-def split_setup(split_index, testdata_type, dast_data, pheme_data, models):
+def split_setup(split_index, testdata_type, dast_data, pheme_data, models, model_type):
     if testdata_type == 'dast':
         test_data = dast_data[split_index][1]
-        models['dastpheme'] = hmm_veracity.HMM(2).fit(pheme_data + dast_data[split_index][0])
-        models['dast'] = hmm_veracity.HMM(2).fit(dast_data[split_index][0])
-
+        models['dastpheme'] = hmm_veracity.HMM(2, model_type).fit(pheme_data + dast_data[split_index][0])
+        models['dast'] = hmm_veracity.HMM(2, model_type).fit(dast_data[split_index][0])
+        models['dast_majority'] = veracity_majority_baseline.VeracityMajorityBaseline().fit(dast_data[split_index][0])
+        models['dastpheme_majority'] = veracity_majority_baseline.VeracityMajorityBaseline().fit(pheme_data + dast_data[split_index][0])
     else:
         test_data = dast_data[split_index][1] + pheme_data[split_index][1]
-        models['pheme'] = hmm_veracity.HMM(2).fit(pheme_data[split_index][0])
-        models['dastpheme'] = hmm_veracity.HMM(2).fit(pheme_data[split_index][0] + dast_data[split_index][0])
-        models['dast'] = hmm_veracity.HMM(2).fit(dast_data[split_index][0])
+        models['pheme'] = hmm_veracity.HMM(2, model_type).fit(pheme_data[split_index][0])
+        models['dastpheme'] = hmm_veracity.HMM(2, model_type).fit(pheme_data[split_index][0] + dast_data[split_index][0])
+        models['dast'] = hmm_veracity.HMM(2, model_type).fit(dast_data[split_index][0])
+        models['pheme_majority'] = veracity_majority_baseline.VeracityMajorityBaseline().fit(pheme_data[split_index][0])
+        models['dast_majority'] = veracity_majority_baseline.VeracityMajorityBaseline().fit(dast_data[split_index][0])
+        models['dastpheme_majority'] = veracity_majority_baseline.VeracityMajorityBaseline().fit(
+            pheme_data[split_index][0] + dast_data[split_index][0])
     return models, test_data
 
 
-def evaluate_for_splits_dataset(pheme_data, dast_data, unverified_cast, testdata_type):
+def evaluate_for_splits_dataset(pheme_data, dast_data, unverified_cast, testdata_type, model_type):
     empty_performance = {'f1_macro': 0.0, 'accuracy': 0.0}
-    performance, models = test_setup(pheme_data, testdata_type, empty_performance)
+    performance, models = test_setup(pheme_data, testdata_type, empty_performance, model_type)
 
     for i in range(len(dast_data)):
-        models, test_data = split_setup(i, testdata_type, dast_data, pheme_data, models)
+        models, test_data = split_setup(i, testdata_type, dast_data, pheme_data, models, model_type)
 
         for model_name, model in models.items():
             _, acc, f1_macro, _ = model.test(test_data, unverified_cast)
@@ -122,14 +129,14 @@ def evaluate_for_splits_dataset(pheme_data, dast_data, unverified_cast, testdata
     return performance
 
 
-def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast, testdata_type):
+def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast, testdata_type, model_type):
     empty_performance = {x: {'f1_macro': 0.0, 'accuracy': 0.0} for x in [1, 2, 3, 4, 6, 8, 10]}
-    performance, models = test_setup(pheme_data, testdata_type, empty_performance)
+    performance, models = test_setup(pheme_data, testdata_type, empty_performance, model_type)
 
     for i in range(len(dast_data)):
         length_separated_data = {1: [], 2: [], 3: [], 4: [], 6: [], 8: [], 10: []}
 
-        models, test_data = split_setup(i, testdata_type, dast_data, pheme_data, models)
+        models, test_data = split_setup(i, testdata_type, dast_data, pheme_data, models, model_type)
 
         for branch in test_data:
             if len(branch[1]) in length_separated_data:
@@ -180,17 +187,18 @@ def write_out(include_branch_length, ts_performance, nts_performance, out_path='
                 out_file.write('{};{:.2f};{:.2f}\n'.format(dataset, results['f1_macro'], results['accuracy']))
 
 
-def evaluate_performance(unverified_cast, include_branch_length=False, testdata_type='dast'):
-    pheme_ts, pheme_nts, dast_ts, dast_nts = load_datasets(unverified_cast, testdata_type)
+def evaluate_performance(unverified_cast, remove_commenting, include_branch_length=False, testdata_type='dast', model_type='gaussian'):
+    pheme_ts, pheme_nts, dast_ts, dast_nts = load_datasets(unverified_cast, testdata_type, remove_commenting)
 
     if include_branch_length:
-        ts_performance = evaluate_for_splits_length(pheme_ts, dast_ts, unverified_cast, testdata_type)
-        nts_performance = evaluate_for_splits_length(pheme_nts, dast_nts, unverified_cast, testdata_type)
+        ts_performance = evaluate_for_splits_length(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type)
+        nts_performance = evaluate_for_splits_length(pheme_nts, dast_nts, unverified_cast, testdata_type, model_type)
     else:
-        ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts, unverified_cast, testdata_type)
-        nts_performance = evaluate_for_splits_dataset(pheme_nts, dast_nts, unverified_cast, testdata_type)
+        ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type)
+        nts_performance = evaluate_for_splits_dataset(pheme_nts, dast_nts, unverified_cast, testdata_type, model_type)
 
     write_out(include_branch_length, ts_performance, nts_performance)
 
 
-evaluate_performance('true', include_branch_length=True, testdata_type='dastpheme')
+evaluate_performance(unverified_cast='true', remove_commenting=True, include_branch_length=True,
+                     testdata_type='dast')
