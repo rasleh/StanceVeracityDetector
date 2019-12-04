@@ -6,6 +6,7 @@ from pathlib import Path
 
 from src import data_loader
 import os
+import math
 
 current_path = os.path.abspath(__file__)
 
@@ -78,19 +79,16 @@ def preprocess_dast_branch(include_timestamp, branch, sdqc_dict):
 
         else:
             branch_features = []
-            latest = datetime.datetime.min
             earliest = datetime.datetime.max
             for comment in branch:
                 created = datetime.datetime.strptime(comment['comment']['created'], '%Y-%m-%dT%H:%M:%S')
                 if created < earliest:
                     earliest = created
-                if created > latest:
-                    latest = created
 
             for comment in branch:
                 created = datetime.datetime.strptime(comment['comment']['created'], '%Y-%m-%dT%H:%M:%S')
                 branch_features.append([sdqc_dict[comment['comment']['SDQC_Submission']],
-                                        (created - earliest) / (latest - earliest)])
+                                        math.log10(((created - earliest).total_seconds()/3600)+1)])
     else:
         branch_features = [[sdqc_dict[x['comment']['SDQC_Submission']]] for x in branch]
 
@@ -106,21 +104,18 @@ def preprocess_branch(include_timestamp, branch, sdqc_dict):
             branch_features = [[sdqc_dict[branch[0]['SDQC_Submission']], 0]]
         else:
             branch_features = []
-            latest = datetime.datetime.min
             earliest = datetime.datetime.max
             for comment in branch:
                 created = datetime.datetime.strptime(comment['created_at'], '%a %b %d %H:%M:%S %z %Y').replace(tzinfo=None)
                 if created < earliest:
                     earliest = created
-                if created > latest:
-                    latest = created
 
             for comment in branch:
                 created = datetime.datetime.strptime(comment['created_at'], '%a %b %d %H:%M:%S %z %Y').replace(tzinfo=None)
                 if comment['SDQC_Submission'] == 'Underspecified':
                     continue
                 branch_features.append([sdqc_dict[comment['SDQC_Submission']],
-                                        (created - earliest) / (latest - earliest)])
+                                        math.log10(((created - earliest).total_seconds()/3600)+1)])
     else:
         branch_features = [[sdqc_dict[x['SDQC_Submission']]] for x in branch if x['SDQC_Submission'] != 'Underspecified']
 

@@ -7,7 +7,7 @@ from random import shuffle
 import joblib
 import numpy as np
 import sklearn.metrics as sk
-from hmmlearn import hmm
+from hmmlearn.hmm import GaussianHMM, MultinomialHMM
 from sklearn.base import BaseEstimator
 
 from src import data_loader
@@ -78,10 +78,12 @@ class HMM(BaseEstimator):
             thread_flat = np.array(flatten(sdqc_labels)).reshape(-1, feature_count)
             if veracity_label not in self.models:
                 if self.model_type == 'gaussian':
-                    self.models[veracity_label] = hmm.GaussianHMM(n_components=self.components).fit(thread_flat,
+                    self.models[veracity_label] = GaussianHMM(n_components=self.components).fit(thread_flat,
                                                                                             lengths=lengths)
-                else:
-                    self.models[veracity_label] = hmm.MultinomialHMM(n_components=self.components).fit(thread_flat,
+                elif self.model_type == 'multinomial':
+                    # If timestamps are used, the MultinomialHMM ignores these, as it does not support float values
+                    thread_flat = [[int(x[0])] for x in thread_flat]
+                    self.models[veracity_label] = MultinomialHMM(n_components=self.components).fit(thread_flat,
                                                                                                     lengths=lengths)
         return self
 
@@ -99,6 +101,9 @@ class HMM(BaseEstimator):
         for branch in data:
             branch_length = len(branch)
             branch_labels = np.array(branch).reshape(-1, len(branch[0]))
+            # If timestamps are used, the MultinomialHMM ignores these, as it does not support float values
+            if self.model_type == 'multinomial':
+                branch_labels = [[int(x[0])] for x in branch_labels]
             strongest_label = -1
             best_probability = None
             for label, model in self.models.items():

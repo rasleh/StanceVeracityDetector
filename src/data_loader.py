@@ -158,6 +158,7 @@ def load_veracity(path, unverified_cast, remove_commenting):
     "false". Data at "path" is expected to be a two-column CSV file. At the first column should be the veracity status
     of the rumour, and at column 2 should be the feature vectors for the rumour, each feature contained in an array.
 
+    :param remove_commenting: whether a given
     :param path: full data path to the preprocessed data
     :param unverified_cast: how unverified rumours should be handled; is 'none' if they should not been cast as
         another class, or alternatively 'true' or 'false'
@@ -172,10 +173,12 @@ def load_veracity(path, unverified_cast, remove_commenting):
         for line in file:
             veracity, feature_vector = line.replace('\n', '').split('\t')
             feature_vector = feature_vector.replace('[[', '').replace(']]', '').split('], [')
+
             if remove_commenting:
                 feature_vector = [[float(y) for y in x.split(', ')] for x in feature_vector if x.split(', ')[0] != '3']
             else:
                 feature_vector = [[float(y) for y in x.split(', ')] for x in feature_vector]
+
             if veracity == '2':
                 if unverified_cast == 'true':
                     veracity = 1

@@ -164,45 +164,50 @@ def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast, testdata_
     return performance
 
 
-def write_out(include_branch_length, ts_performance, nts_performance, out_path='veracity.csv'):
+def write_out(include_branch_length, performance, out_path='veracity.csv'):
     with open(out_path, mode='w', encoding='utf-8') as out_file:
         if include_branch_length:
             out_file.write('model;length;f1_macro;accuracy\n')
-            for dataset, results in ts_performance.items():
-                if 'majority' in dataset:
-                    continue
+            for dataset, results in performance[0].items():
                 for length, metrics in results.items():
                     out_file.write('{};{};{:.2f};{:.2f}\n'.format(dataset + '_ts', length, results[length]['f1_macro'],
                                                                   results[length]['accuracy']))
-
-            for dataset, results in nts_performance.items():
-                for length, metrics in results.items():
-                    out_file.write('{};{};{:.2f};{:.2f}\n'.format(dataset + '_nts', length, results[length]['f1_macro'],
+            if len(performance) > 1:
+                for dataset, results in performance[1].items():
+                    for length, metrics in results.items():
+                        if 'majority' in dataset:
+                            continue
+                        out_file.write('{};{};{:.2f};{:.2f}\n'.format(dataset, length, results[length]['f1_macro'],
                                                                   results[length]['accuracy']))
 
         else:
             out_file.write('model;f1_macro;accuracy\n')
-            for dataset, results in ts_performance.items():
-                if 'majority' in dataset:
-                    continue
+            for dataset, results in performance[0].items():
                 out_file.write('{};{:.2f};{:.2f}\n'.format(dataset + '_ts', results['f1_macro'], results['accuracy']))
-
-            for dataset, results in nts_performance.items():
-                out_file.write('{};{:.2f};{:.2f}\n'.format(dataset, results['f1_macro'], results['accuracy']))
+            if len(performance) > 1:
+                for dataset, results in performance[1].items():
+                    if 'majority' in dataset:
+                        continue
+                    out_file.write('{};{:.2f};{:.2f}\n'.format(dataset, results['f1_macro'], results['accuracy']))
 
 
 def evaluate_performance(unverified_cast, remove_commenting, include_branch_length=False, testdata_type='dast', model_type='gaussian'):
     pheme_ts, pheme_nts, dast_ts, dast_nts = load_datasets(unverified_cast, testdata_type, remove_commenting)
-
+    performance = []
     if include_branch_length:
-        ts_performance = evaluate_for_splits_length(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type)
         nts_performance = evaluate_for_splits_length(pheme_nts, dast_nts, unverified_cast, testdata_type, model_type)
+        performance.append(nts_performance)
+        if model_type in ['gaussian']:
+            ts_performance = evaluate_for_splits_length(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type)
+            performance.append(ts_performance)
     else:
-        ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type)
         nts_performance = evaluate_for_splits_dataset(pheme_nts, dast_nts, unverified_cast, testdata_type, model_type)
+        performance.append(nts_performance)
+        if model_type in ['gaussian']:
+            ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type)
+            performance.append(ts_performance)
+    write_out(include_branch_length, performance)
 
-    write_out(include_branch_length, ts_performance, nts_performance)
 
-
-evaluate_performance(unverified_cast='true', remove_commenting=False, include_branch_length=False,
+evaluate_performance(unverified_cast='true', remove_commenting=True, include_branch_length=False,
                      testdata_type='dastpheme', model_type='multinomial')
