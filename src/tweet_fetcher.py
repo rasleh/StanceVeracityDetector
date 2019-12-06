@@ -184,7 +184,7 @@ def popular_search():
     for source_id, source_tweet in popular_tweets.items():
         source_tweet_id, collected_tweets = retrieve_conversation_thread(source_id)
         yield source_tweet_id, collected_tweets
-
+ 
 
 def specific_search(query):
     data = []
