@@ -200,8 +200,8 @@ def specific_search(query):
         collected_replies += len(collected_tweets[tweet.id_str])
         all_tweets.clear()
         if counter % 5 is 0:
-            print('Scraped {} source tweets and their replies. Latest tweet: {}'
-                  .format(len(data), tweet.created_at))
+            print('Scraped {} source tweets and their replies, {} tweets scraped total. Latest tweet: {}'
+                  .format(len(data), collected_replies, tweet.created_at))
 
     write_to_file(data)
 
