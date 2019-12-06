@@ -1,8 +1,10 @@
 model;f1_macro;accuracy
-pheme_ts;0.50;0.57
-dastpheme_ts;0.55;0.65
-dast_ts;0.48;0.54
-dast_majority_ts;0.45;0.81
-pheme_majority_ts;0.45;0.81
-dastpheme_majority_ts;0.45;0.81
-git add 
+pheme;0.56;0.72
+dastpheme;0.57;0.73
+dast;0.56;0.71
+dast_majority;0.45;0.82
+pheme_majority;0.45;0.82
+dastpheme_majority;0.45;0.82
+pheme_ts;0.50;0.73
+dastpheme_ts;0.47;0.56
+dast_ts;0.47;0.55

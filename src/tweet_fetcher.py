@@ -1,13 +1,15 @@
 import os
 from collections import deque
 import json
-from datetime import datetime
+from datetime import date, datetime
 import configparser
 import tweepy
 
 current_path = os.path.abspath(__file__)
-ini_path = os.path.join(current_path, '../../data/datasets/twitter/twitter.ini')
-raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/{}.txt'.format(datetime.today()))
+ini_path = os.path.join(current_path, '../../data/twitter.ini')
+#raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/{}.txt'.format(date.today()))
+raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/2019-12-05.txt')
+
 
 
 # TODO: Implement command-line client
@@ -84,30 +86,40 @@ def write_to_file(data):
         if os.stat(raw_data_path).st_size == 0:
             empty_file = True
 
-        not_added = False
         db_data = []
         new_data = []
 
         if not empty_file:
             db_data = db_file.readlines()
             for source in data:
+                print(source)
+                in_db = False
                 for i in range(len(db_data)):
                     if db_data[i].split('\t')[0] == source[0]:
-                        db_data[i] = source[0] + '\t' + str(source[1])
+                        in_db = True
+                        db_data[i] = source[0] + '\t' + json.dumps(source[1])
+                        continue
                     else:
-                        new_data.append(source)
-                        not_added = True
-            if not_added:
-                db_data[-1] = db_data[-1] + '\n'
+                        db_data[i] = db_data[i].rstrip()
+                if not in_db:
+                    new_data.append(source)
         else:
             new_data = data
 
-        for source in new_data:
-            db_data.append(source[0] + '\t' + str(source[1]))
+        for i in range(len(new_data)):
+            if i != len(new_data)-1:
+                db_data.append(new_data[i][0] + '\t' + json.dumps(new_data[i][1]))
+            else:
+                db_data.append(new_data[i][0] + '\t' + json.dumps(new_data[i][1]))
 
         db_file.seek(0)
         for i in range(len(db_data)):
-            db_file.write(db_data[i])
+            if db_data[i] == '':
+                continue
+            if i != len(db_data)-1:
+                db_file.write(db_data[i] + '\n')
+            else:
+                db_file.write(db_data[i])
 
 
 def retrieve_conversation_thread(tweet_id, write_out=False):
@@ -148,7 +160,7 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
 def popular_search():
     popular_tweets = {}
     counter = 0
-    for tweet in tweepy.Cursor(api.search, q='min_replies:10', result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100').items():
+    for tweet in tweepy.Cursor(api.search, q='min_replies:10', result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100', tweet_mode='extended').items():
         counter += 1
         popular_tweets[tweet.id_str] = tweet
         all_tweets[tweet.id_str] = tweet
@@ -174,6 +186,28 @@ def popular_search():
         yield source_tweet_id, collected_tweets
 
 
+def specific_search(query):
+    data = []
+    collected_replies = 0
+    counter = 0
+    for tweet in tweepy.Cursor(api.search, q=query, lang='en', result_type='latest', count='100', tweet_mode='extended').items():
+        counter += 1
+        collected_tweets = {tweet.id_str: tweet._json}
+        identify_comments(tweet.id_str, tweet.user.screen_name, collected_tweets)
+        for tweet_id, item in all_tweets.items():
+            collected_tweets[tweet_id] = item._json
+        data.append((tweet.id_str, collected_tweets))
+        collected_replies += len(collected_tweets[tweet.id_str])
+        all_tweets.clear()
+        if counter % 5 is 0:
+            print('Scraped {} source tweets and their replies. Latest tweet: {}'
+                  .format(len(data), tweet.created_at))
+
+    write_to_file(data)
+
+
 all_tweets = {}
 tweets_of_interest = deque()
 api = authenticate()
+
+specific_search('#ChangeMyMind AND -filter:retweets AND min_replies:5')
