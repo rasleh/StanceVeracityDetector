@@ -213,8 +213,8 @@ def evaluate_performance(unverified_cast, remove_commenting, include_branch_leng
         if model_type in ['gaussian']:
             ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type, xv_count)
             performance.append(ts_performance)
-    write_out(include_branch_length, performance) 
+    write_out(include_branch_length, performance)
 
 
-evaluate_performance(unverified_cast='true', remove_commenting=True, include_branch_length=False,
-                     testdata_type='pheme', model_type='gaussian')
+evaluate_performance(unverified_cast='false', remove_commenting=True, include_branch_length=False,
+                     testdata_type='dast', model_type='gaussian')

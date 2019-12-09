@@ -11,7 +11,6 @@ ini_path = os.path.join(current_path, '../../data/twitter.ini')
 raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/2019-12-05.txt')
 
 
-
 # TODO: Implement command-line client
 # Performs authentication necessary to access the Twitter API, using the credentials given in twitter.ini
 def authenticate():
@@ -210,4 +209,4 @@ all_tweets = {}
 tweets_of_interest = deque()
 api = authenticate()
 
-specific_search('#ChangeMyMind AND -filter:retweets AND min_replies:5')
+#specific_search('#ChangeMyMind AND -filter:retweets AND min_replies:5')
