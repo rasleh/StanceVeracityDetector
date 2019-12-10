@@ -27,4 +27,6 @@ class VeracityMajorityBaseline:
         acc = sk.accuracy_score(actual_labels, predicted_labels)
         f1_macro = sk.f1_score(actual_labels, predicted_labels, average='macro')
         f1_micro = sk.f1_score(actual_labels, predicted_labels, average='micro')
-        return class_acc, acc, f1_macro, f1_micro
+        precision = sk.precision_score(actual_labels, predicted_labels)
+        recall = sk.recall_score(actual_labels, predicted_labels)
+        return class_acc, acc, f1_macro, f1_micro, precision, recall

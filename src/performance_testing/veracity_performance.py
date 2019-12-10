@@ -85,13 +85,21 @@ def cross_validation_splits(dataset, no_splits):
     return splits
 
 
-def update_metrics(performance, model, acc, f1, branch_length):
+def update_metrics(performance, model, f1_macro, f1_micro, acc, precision, recall, branch_length):
     if branch_length:
-        performance[model][branch_length]['f1_macro'] += f1
+        performance[model][branch_length]['f1_macro'] += f1_macro
+        performance[model][branch_length]['f1_micro'] += f1_micro
         performance[model][branch_length]['accuracy'] += acc
+        performance[model][branch_length]['precision'] += precision
+        performance[model][branch_length]['recall'] += recall
+
+
     else:
-        performance[model]['f1_macro'] += f1
+        performance[model]['f1_macro'] += f1_macro
+        performance[model]['f1_micro'] += f1_micro
         performance[model]['accuracy'] += acc
+        performance[model]['precision'] += precision
+        performance[model]['recall'] += recall
 
 
 def test_setup(pheme_data, dast_data, testdata_type, empty_performance, model_type, comp_count):
@@ -136,25 +144,26 @@ def split_setup(split_index, testdata_type, dast_data, pheme_data, models, model
 
 
 def evaluate_for_splits_dataset(pheme_data, dast_data, unverified_cast, testdata_type, model_type, xv_count, comp_count):
-    empty_performance = {'f1_macro': 0.0, 'accuracy': 0.0}
+    empty_performance = {'f1_macro': 0.0, 'f1_micro': 0.0, 'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0}
     performance, models = test_setup(pheme_data, dast_data, testdata_type, empty_performance, model_type, comp_count)
 
     for i in range(xv_count):
         models, test_data = split_setup(i, testdata_type, dast_data, pheme_data, models, model_type, comp_count)
 
         for model_name, model in models.items():
-            _, acc, f1_macro, _ = model.test(test_data, unverified_cast)
-            update_metrics(performance, model_name, acc, f1_macro, branch_length=False)
+            _, acc, f1_macro, f1_micro, precision, recall = model.test(test_data, unverified_cast)
+            update_metrics(performance, model_name, f1_macro, f1_micro, acc, precision, recall, branch_length=False)
 
     for dataset, results in performance.items():
         for metric, value in results.items():
             performance[dataset][metric] = value / xv_count
 
+    models.clear()
     return performance
 
 
 def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast, testdata_type, model_type, xv_count, comp_count):
-    empty_performance = {x: {'f1_macro': 0.0, 'accuracy': 0.0} for x in [1, 2, 3, 4, 6, 8, 10]}
+    empty_performance = {x: {'f1_macro': 0.0, 'f1_micro': 0.0, 'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0} for x in [1, 2, 3, 4, 6, 8, 10]}
     performance, models = test_setup(pheme_data, dast_data, testdata_type, empty_performance, model_type, comp_count)
 
     for i in range(xv_count):
@@ -177,14 +186,14 @@ def evaluate_for_splits_length(pheme_data, dast_data, unverified_cast, testdata_
         for length, datapoints in length_separated_data.items():
             if datapoints:
                 for model_name, model in models.items():
-                    _, acc, f1_macro, _ = model.test(datapoints, unverified_cast)
-                    update_metrics(performance, model_name, acc, f1_macro, branch_length=length)
+                    _, acc, f1_macro, f1_micro, precision, recall = model.test(datapoints, unverified_cast)
+                    update_metrics(performance, model_name, f1_macro, f1_micro, acc, precision, recall, branch_length=length)
 
     for dataset, results in performance.items():
         for length, metrics in results.items():
             for metric, value in metrics.items():
                 performance[dataset][length][metric] = value / xv_count
-
+    models.clear()
     return performance
 
 
@@ -196,28 +205,28 @@ def write_out(unverified_cast, remove_commenting, testdata_type, model_type, inc
     with open(out_path, mode='a', encoding='utf-8') as out_file:
         if include_branch_length:
             if empty_header:
-                out_file.write('model;length;unverified_cast;remove_commenting;testdata_type;model_type;comp_count;f1_macro;accuracy\n')
+                out_file.write('model;length;unverified_cast;remove_commenting;testdata_type;model_type;comp_count;f1_macro;f1_micro;accuracy;precision;recall\n')
             for dataset, results in performance[0].items():
                 for length, metrics in results.items():
-                    out_file.write('{};{};{};{};{};{};{};{:.2f};{:.2f}\n'.format(dataset, length, unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results[length]['f1_macro'], results[length]['accuracy']))
+                    out_file.write('{};{};{};{};{};{};{};{:.3f};{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(dataset, length, unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results[length]['f1_macro'], results[length]['f1_micro'], results[length]['accuracy'], results[length]['precision'], results[length]['recall']))
             if len(performance) > 1:
                 for dataset, results in performance[1].items():
                     for length, metrics in results.items():
                         if 'majority' in dataset:
                             continue
-                        out_file.write('{};{};{};{};{};{};{};{:.2f};{:.2f}\n'.format(dataset + '_ts', length, unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results[length]['f1_macro'], results[length]['accuracy']))
+                        out_file.write('{};{};{};{};{};{};{};{:.3f};{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(dataset + '_ts', length, unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results[length]['f1_macro'], results[length]['f1_micro'], results[length]['accuracy'], results[length]['precision'], results[length]['recall']))
 
         else:
             if empty_header:
-                out_file.write('model;unverified_cast;remove_commenting;testdata_type;model_type;comp_count;f1_macro;accuracy\n')
+                out_file.write('model;unverified_cast;remove_commenting;testdata_type;model_type;comp_count;f1_macro;f1_micro;accuracy;precision;recall\n')
             for dataset, results in performance[0].items():
-                out_file.write('{};{};{};{};{};{};{:.2f};{:.2f}\n'.format(dataset + '_ts', unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results['f1_macro'], results['accuracy']))
+                out_file.write('{};{};{};{};{};{};{:.3f};{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(dataset, unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results['f1_macro'], results['f1_micro'], results['accuracy'], results['precision'], results['recall']))
             if len(performance) > 1:
                 for dataset, results in performance[1].items():
                     if 'majority' in dataset:
                         continue
                     out_file.write(
-                        '{};{};{};{};{};{};{:.2f};{:.2f}\n'.format(dataset + '_ts', unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results['f1_macro'], results['accuracy']))
+                        '{};{};{};{};{};{};{:.3f};{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(dataset + '_ts', unverified_cast, remove_commenting, testdata_type, model_type, comp_count, results['f1_macro'], results['f1_micro'], results['accuracy'], results['precision'], results['recall']))
 
 
 def evaluate_performance(unverified_cast, remove_commenting, testdata_type='dast', model_type='gaussian', include_branch_length=False, xv_count=5, comp_count=2):
@@ -236,6 +245,7 @@ def evaluate_performance(unverified_cast, remove_commenting, testdata_type='dast
             ts_performance = evaluate_for_splits_dataset(pheme_ts, dast_ts, unverified_cast, testdata_type, model_type, xv_count, comp_count)
             performance.append(ts_performance)
     write_out(unverified_cast, remove_commenting, testdata_type, model_type, include_branch_length, comp_count, performance)
+    performance.clear(), pheme_ts.clear(), dast_ts.clear(), dast_nts.clear()
 
 
 def full_performance_eval(include_branch_length=False, fix_comp_count=True, xv_count=5):
@@ -263,4 +273,4 @@ def full_performance_eval(include_branch_length=False, fix_comp_count=True, xv_c
                             ))
 
 
-full_performance_eval(include_branch_length=True)
+full_performance_eval(include_branch_length=False)

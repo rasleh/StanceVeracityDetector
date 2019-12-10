@@ -143,13 +143,15 @@ class HMM(BaseEstimator):
         cm = c_matrix.astype('float') / c_matrix.sum(axis=1)[:, np.newaxis]
         class_acc = cm.diagonal()
         acc = sk.accuracy_score(actual_labels, predicted_labels)
+        precision = sk.precision_score(actual_labels, predicted_labels)
+        recall = sk.recall_score(actual_labels, predicted_labels)
         f1_macro = sk.f1_score(actual_labels, predicted_labels, average='macro')
         f1_micro = sk.f1_score(actual_labels, predicted_labels, average='micro')
         print("Class acc:", class_acc)
         print("Accuracy: %.5f" % acc)
         print("F1-macro:", f1_macro)
         print("F1-micro:", f1_micro)
-        return class_acc, acc, f1_macro, f1_micro
+        return class_acc, acc, f1_macro, f1_micro, precision, recall
 
 
 def split_test_train(data, test_partition):
@@ -207,7 +209,7 @@ def main(argv):
     test_data, train_data = split_test_train(data, 0.2)
     model = HMM(2, args.hmm_version)
     model.fit(train_data)
-    class_acc, acc, f1_macro, f1_micro = model.test(test_data, args.unverified_cast)
+    class_acc, acc, f1_macro, f1_micro, precision, recall = model.test(test_data, args.unverified_cast)
 
     if args.save_model:
         if not args.model_name:
