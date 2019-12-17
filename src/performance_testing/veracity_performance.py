@@ -20,8 +20,8 @@ class HiddenPrints:
     def __enter__(self):
         self._original_stdout = sys.stdout
         sys.stdout = open(os.devnull, 'w')
-        warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-        warnings.filterwarnings("ignore", category=RuntimeWarning)
+        #warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+        #warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout.close()
@@ -262,15 +262,16 @@ def full_performance_eval(include_branch_length=False, fix_comp_count=True, xv_c
                         for comp_count in comp_count_vars:
                             with HiddenPrints():
                                 evaluate_performance(unverified_cast, remove_commenting, testdata_type, model_type, include_branch_length, xv_count, comp_count)
-                                print('Performance eval done for: unverified_cast: {}, remove_commenting: {}, testdata_type: {}, model_type: {}, comp_count: {}'.format(
-                                    unverified_cast, remove_commenting, testdata_type, model_type, comp_count
-                                ))
-                    else:
-                        with HiddenPrints():
-                            evaluate_performance(unverified_cast, remove_commenting, testdata_type, model_type, include_branch_length, xv_count)
-                            print('Performance eval done for: unverified_cast: {}, remove_commenting: {}, testdata_type: {}, model_type: {}'.format(
-                                unverified_cast, remove_commenting, testdata_type, model_type
+                            print('Performance eval done for: unverified_cast: {}, remove_commenting: {}, testdata_type: {}, model_type: {}, comp_count: {}'.format(
+                                unverified_cast, remove_commenting, testdata_type, model_type, comp_count
                             ))
+                    else:
+                        #with HiddenPrints():
+                        evaluate_performance(unverified_cast, remove_commenting, testdata_type, model_type, include_branch_length, xv_count)
+                        print('Performance eval done for: unverified_cast: {}, remove_commenting: {}, testdata_type: {}, model_type: {}'.format(
+                                unverified_cast, remove_commenting, testdata_type, model_type
+                        ))
 
 
+#evaluate_performance(unverified_cast='false', remove_commenting='false')
 full_performance_eval(include_branch_length=False)

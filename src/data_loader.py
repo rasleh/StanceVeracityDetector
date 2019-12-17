@@ -1,7 +1,6 @@
 import csv
 import json
 import os
-from pathlib import Path
 
 from src.pheme_loader import read_pheme
 

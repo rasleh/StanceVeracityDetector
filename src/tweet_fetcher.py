@@ -209,4 +209,5 @@ all_tweets = {}
 tweets_of_interest = deque()
 api = authenticate()
 
-#specific_search('#ChangeMyMind AND -filter:retweets AND min_replies:5')
+# SorryNotSorry, UnpopularOpinion, UnpopularOpinions, ChangeMyMind
+specific_search('#sorrynotsorry AND -filter:retweets AND min_replies:5')
