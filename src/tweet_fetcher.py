@@ -158,7 +158,7 @@ def retrieve_conversation_thread(tweet_id, write_out=False):
 def popular_search():
     popular_tweets = {}
     counter = 0
-    for tweet in tweepy.Cursor(api.search, q='min_replies:10', result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100', tweet_mode='extended').items():
+    for tweet in tweepy.Cursor(api.search, q='min_replies:10', result_type='latest', lang='da', geocode='56.013377,10.362431,200km', count='100', tweet_mode='extended', timeout=999999).items():
         counter += 1
         popular_tweets[tweet.id_str] = tweet
         all_tweets[tweet.id_str] = tweet
@@ -188,7 +188,7 @@ def specific_search(query):
     data = []
     collected_replies = 0
     counter = 0
-    for tweet in tweepy.Cursor(api.search, q=query, lang='en', result_type='latest', count='100', tweet_mode='extended').items():
+    for tweet in tweepy.Cursor(api.search, q=query, lang='en', result_type='latest', tweet_mode='extended', timeout=999999).items():
         counter += 1
         tweet_item = tweet._json
         add_sdqc_placeholders(tweet_item)
@@ -201,10 +201,9 @@ def specific_search(query):
         data.append((tweet.id_str, collected_tweets))
         collected_replies += len(collected_tweets[tweet.id_str])
         all_tweets.clear()
-        if counter % 1 is 0:
+        if counter % 5 is 0:
             print('Scraped {} source tweets and their replies, {} tweets scraped total. Latest tweet: {}'
                   .format(len(data), collected_replies, tweet.created_at))
-            break
 
     write_to_file(data)
 
@@ -214,4 +213,4 @@ tweets_of_interest = deque()
 api = authenticate()
 
 # SorryNotSorry, UnpopularOpinion, UnpopularOpinions, ChangeMyMind
-specific_search('#changemymind AND -filter:retweets AND min_replies:5')
+specific_search('#unpopularopinions AND -filter:retweets AND min_replies:5')
