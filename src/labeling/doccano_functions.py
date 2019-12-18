@@ -56,7 +56,12 @@ def anno_agreement_check(anno_data_path: Path, agree_path: Path, disagree_path: 
                 agree_data.write('\n')
 
 
-def integrate_label_data(anno_data_path: Path, database_path: Path):
+def integrate_label_data(anno_data_path: Path, database_path: Path, label_scheme: str):
+    sdqc_mapping = {1: ''}
+    if label_scheme not in ['claim', 'sdqc']:
+        err_msg = "Unrecognized label scheme: {}, please use 'sdqc' or 'claim'"
+        raise RuntimeError(
+            err_msg.format(label_scheme))
     with anno_data_path.open(encoding='utf-8') as labeled_data, database_path.open(encoding='utf-8') as database:
         data = []
         for line in database:
@@ -66,11 +71,15 @@ def integrate_label_data(anno_data_path: Path, database_path: Path):
                 annotation = json.loads(annotation)
                 for tweet_id, tweet in tweet_dict.items():
                     if tweet['full_text'] == annotation['text']:
+                        if label_scheme == 'claim':
+
+                        if label_scheme == 'sdqc':
+                            if len(annotation['annotations']) != 1:
+                                err_msg = "{} SDQC labels found, only one allowed"
+                                raise RuntimeError(
+                                    err_msg.format(len(annotation['annotations'])))
 
                         not_altered = False
-
-
-
             if not_altered:
                 data.append(line)
             else:

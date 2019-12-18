@@ -91,7 +91,6 @@ def write_to_file(data):
         if not empty_file:
             db_data = db_file.readlines()
             for source in data:
-                print(source)
                 in_db = False
                 for i in range(len(db_data)):
                     if db_data[i].split('\t')[0] == source[0]:
@@ -191,16 +190,21 @@ def specific_search(query):
     counter = 0
     for tweet in tweepy.Cursor(api.search, q=query, lang='en', result_type='latest', count='100', tweet_mode='extended').items():
         counter += 1
-        collected_tweets = {tweet.id_str: tweet._json}
+        tweet_item = tweet._json
+        add_sdqc_placeholders(tweet_item)
+        collected_tweets = {tweet.id_str: tweet_item}
         identify_comments(tweet.id_str, tweet.user.screen_name, collected_tweets)
         for tweet_id, item in all_tweets.items():
-            collected_tweets[tweet_id] = item._json
+            item = item._json
+            add_sdqc_placeholders(item)
+            collected_tweets[tweet_id] = item
         data.append((tweet.id_str, collected_tweets))
         collected_replies += len(collected_tweets[tweet.id_str])
         all_tweets.clear()
-        if counter % 5 is 0:
+        if counter % 1 is 0:
             print('Scraped {} source tweets and their replies, {} tweets scraped total. Latest tweet: {}'
                   .format(len(data), collected_replies, tweet.created_at))
+            break
 
     write_to_file(data)
 
@@ -210,4 +214,4 @@ tweets_of_interest = deque()
 api = authenticate()
 
 # SorryNotSorry, UnpopularOpinion, UnpopularOpinions, ChangeMyMind
-specific_search('#sorrynotsorry AND -filter:retweets AND min_replies:5')
+specific_search('#changemymind AND -filter:retweets AND min_replies:5')
