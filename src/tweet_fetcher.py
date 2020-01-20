@@ -7,7 +7,7 @@ import tweepy
 
 current_path = os.path.abspath(__file__)
 ini_path = os.path.join(current_path, '../../data/twitter.ini')
-raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/{}.txt'.format(date.today()))
+raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/unlabeled/unlabeled.txt')
 #raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/2019-12-05.txt')
 
 
@@ -213,4 +213,4 @@ tweets_of_interest = deque()
 api = authenticate()
 
 # SorryNotSorry, UnpopularOpinion, UnpopularOpinions, ChangeMyMind
-specific_search('#unpopularopinions AND -filter:retweets AND min_replies:5')
+# specific_search('#unpopularopinions AND -filter:retweets AND min_replies:5')
