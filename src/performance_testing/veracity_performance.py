@@ -93,7 +93,6 @@ def update_metrics(performance, model, f1_macro, f1_micro, acc, precision, recal
         performance[model][branch_length]['precision'] += precision
         performance[model][branch_length]['recall'] += recall
 
-
     else:
         performance[model]['f1_macro'] += f1_macro
         performance[model]['f1_micro'] += f1_micro

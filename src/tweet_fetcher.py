@@ -3,11 +3,13 @@ from collections import deque
 import json
 from datetime import date, datetime
 import configparser
+from pathlib import Path
+
 import tweepy
 
 current_path = os.path.abspath(__file__)
 ini_path = os.path.join(current_path, '../../data/twitter.ini')
-raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/{}.txt'.format(date.today()))
+default_raw_path = os.path.join(current_path, '../../data/datasets/twitter/raw/')
 #raw_data_path = os.path.join(current_path, '../../data/datasets/twitter/raw/2019-12-05.txt')
 
 
@@ -77,12 +79,13 @@ def identify_comments(tweet_id, username, collected_tweets):
 #  "Children" array with any new posts.
 def write_to_file(data):
     # Create file if it does not exist
-    if not os.path.isfile(raw_data_path):
-        open(raw_data_path, 'w', encoding="UTF-8")
+    out_path = os.path.join(default_raw_path, '{}.txt'.format(date.today()))
+    if not os.path.isfile(out_path):
+        open(out_path, 'w', encoding="UTF-8")
 
-    with open(raw_data_path, 'r+', encoding="UTF-8") as db_file:
+    with open(out_path, 'r+', encoding="UTF-8") as db_file:
         empty_file = False
-        if os.stat(raw_data_path).st_size == 0:
+        if os.stat(out_path).st_size == 0:
             empty_file = True
 
         db_data = []
@@ -208,9 +211,46 @@ def specific_search(query):
     write_to_file(data)
 
 
+def remove_duplicates(data_a, data_b):
+    clean_data = []
+    duplicates = set()
+    for line_a in data_a:
+        clean_data.append(line_a)
+        source_id_a = line_a.split('\t')[0]
+        for line_b in data_b:
+            if source_id_a == line_b.split('\t')[0]:
+                duplicates.add(source_id_a)
+    for line_b in data_b:
+        if line_b.split('\t')[0] not in duplicates:
+            clean_data.append(line_b)
+    return clean_data
+
+
+def merge_raw_data(data_path_a, data_path_b):
+    if not os.path.isfile(data_path_a):
+        data_path_a = Path(os.path.join(default_raw_path, data_path_a))
+        print('{} does not exist, looking in default raw data folder'.format(data_path_a))
+    if not os.path.isfile(data_path_b):
+        data_path_b = Path(os.path.join(default_raw_path, data_path_b))
+        print('{} does not exist, looking in default raw data folder'.format(data_path_b))
+    if not os.path.isfile(data_path_a) or  not os.path.isfile(data_path_b):
+        err_msg = "Error in data paths, one or more file does not exist\n{}\n{}"
+        raise RuntimeError(
+            err_msg.format(data_path_a, data_path_b))
+
+    with open(data_path_a, encoding='utf-8') as data_a, open(data_path_b, encoding='utf-8') as data_b:
+        data_a = data_a.readlines()
+        data_b = data_b.readlines()
+        clean_data = remove_duplicates(data_a, data_b)
+
+        with open(os.path.join(default_raw_path, 'merged.txt'), 'w', encoding='utf-8') as out_path:
+            out_path.writelines(clean_data)
+
+
 all_tweets = {}
 tweets_of_interest = deque()
 api = authenticate()
 
 # SorryNotSorry, UnpopularOpinion, UnpopularOpinions, ChangeMyMind
-specific_search('#unpopularopinions AND -filter:retweets AND min_replies:5')
+#specific_search('#sorrynotsorry AND -filter:retweets AND min_replies:5')
+merge_raw_data('2019-12-05.txt', '123')

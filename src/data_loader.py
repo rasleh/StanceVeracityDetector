@@ -117,6 +117,60 @@ def load_raw_data(path, database):
     return switch.get(database)()
 
 
+def load_claim_data(path):
+    """
+    Loads data for the claim identification task, formats it into a list, and returns this list.
+
+    :param path: full path to the raw data
+    :return: A list of json objects corresponding to source tweets
+    """
+    data = []
+    print('Loading raw Twitter data')
+    with open(path) as file:
+        for line in file:
+            root_id = line.split('\t')[0]
+            raw_data = json.loads(line.split('\t')[1])
+            data.append(raw_data[root_id])
+    return data
+
+
+def load_stance_data(path):
+    """
+    Loads data for the stance detection task, formats it into a list, and returns this list.
+
+    :param path: full path to the raw data
+    :return: A list of json object pairs, corresponding to source tweets followed by a response to that tweet
+    """
+    data = []
+    print('Loading raw Twitter data')
+    with open(path) as file:
+        for line in file:
+            root_id = line.split('\t')[0]
+            raw_data = json.loads(line.split('\t')[1])
+            for tweet_id, tweet in raw_data.items():
+                if root_id == tweet_id:
+                    continue
+                else:
+                    data.append([raw_data[root_id], raw_data[tweet_id]])
+    return data
+
+
+def load_annotation_data(data_type: str):
+    """
+    Loads un-annotated data, which is to be annotated, and returns the data os a list. Either loads data for claim
+    identification or stance detection task.
+
+    :param data_type: the type of annotation data to be loaded, either "claim" or "stance"
+    :return: a list of data points for annotation; either source tweets or source><reply pairs, depending on data_type
+    """
+    path = os.path.join(os.path.abspath(__file__), '../../data/datasets/twitter/raw/unlabeled.txt')
+    switch = {
+        'claim': lambda: load_claim_data(path),
+        'stance': lambda: load_stance_data(path)
+    }
+    return switch.get(data_type)()
+
+
 def load_dast_lstm(path):
     """
     Loads preprocessed data from the DAST dataset specifically for use in the StanceLSTM class. Expected data format is

@@ -2,10 +2,17 @@ import json
 import os
 from pathlib import Path
 
-test_data = Path(os.path.join(os.path.abspath(__file__), '../../../data/datasets/twitter/raw/2019-12-05.txt'))
+current_path = os.path.abspath(__file__)
+default_raw_path = os.path.join(current_path, '../../data/datasets/twitter/raw/')
+default_label_path = os.path.join(current_path, '../../data/datasets/twitter/label/')
+test_raw_data = Path(os.path.join(default_raw_path, '2019-12-05.txt'))
 
 
-def generate_label_data(data_path: Path, stance_out_path: Path, claim_out_path: Path):
+def generate_label_data(data_file: str, stance_out_file: str, claim_out_file: str):
+    data_path = Path(os.path.join(default_raw_path, data_file))
+    stance_out_path = Path(os.path.join(default_label_path), stance_out_file)
+    claim_out_path = Path(os.path.join(default_label_path), claim_out_file)
+
     with data_path.open() as data, stance_out_path.open(mode='w') as stance_out, claim_out_path.open(mode='w') as claim_out:
         for line in data:
             tweet_dict = json.loads(line.split('\t')[1])
@@ -23,7 +30,11 @@ def generate_label_data(data_path: Path, stance_out_path: Path, claim_out_path: 
                 stance_out.write('\n')
 
 
-def anno_agreement_check(anno_data_path: Path, agree_path: Path, disagree_path: Path):
+def anno_agreement_check(anno_data_file: str, agree_file: str, disagree_file: str):
+    anno_data_path = Path(os.path.join(default_raw_path, anno_data_file))
+    agree_path = Path(os.path.join(default_raw_path, agree_file))
+    disagree_path = Path(os.path.join(default_raw_path, disagree_file))
+
     with anno_data_path.open(encoding='utf-8') as anno_data, agree_path.open(mode='w', encoding='utf-8') as agree_data, disagree_path.open(
             mode='w', encoding='utf-8') as disagree_data:
         for line in anno_data:
