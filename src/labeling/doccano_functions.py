@@ -4,16 +4,14 @@ from pathlib import Path
 
 current_path = os.path.abspath(__file__)
 default_raw_path = os.path.join(current_path, '../../data/datasets/twitter/raw/')
-default_label_path = os.path.join(current_path, '../../data/datasets/twitter/label/')
-test_raw_data = Path(os.path.join(default_raw_path, '2019-12-05.txt'))
+unlabeled_data_path = Path(os.path.join(os.path.abspath(__file__), '../../../data/datasets/twitter/raw/unlabeled'))
 
 
-def generate_label_data(data_file: str, stance_out_file: str, claim_out_file: str):
-    data_path = Path(os.path.join(default_raw_path, data_file))
-    stance_out_path = Path(os.path.join(default_label_path), stance_out_file)
-    claim_out_path = Path(os.path.join(default_label_path), claim_out_file)
-
-    with data_path.open() as data, stance_out_path.open(mode='w') as stance_out, claim_out_path.open(mode='w') as claim_out:
+def generate_label_data(file_name: str, stance_out_name: str, claim_out_name: str):
+    file_path = Path(unlabeled_data_path, file_name)
+    stance_out_path = Path(unlabeled_data_path, stance_out_name)
+    claim_out_path = Path(unlabeled_data_path, claim_out_name)
+    with file_path.open() as data, stance_out_path.open(mode='w') as stance_out, claim_out_path.open(mode='w') as claim_out:
         for line in data:
             tweet_dict = json.loads(line.split('\t')[1])
             source_tweet = tweet_dict[line.split('\t')[0]]
@@ -140,5 +138,5 @@ def integrate_label_data(anno_data_path: Path, database_path: Path, label_scheme
             database.write(line)
 
 
-anno_agreement_check(Path('test.json'), Path('agree.json'), Path('disagree.json'))
-#generate_label_data(test_data, Path('stance.jsonl'), Path('claim.jsonl'))
+#anno_agreement_check(Path('test.json'), Path('agree.json'), Path('disagree.json'))
+#generate_label_data(test_data, 'stance.jsonl', 'claim.jsonl')
