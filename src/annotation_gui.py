@@ -7,20 +7,22 @@ LARGE_FONT= ("Verdana", 12)
 class AnnotationGUI(Tk):
     def __init__(self, *args, **kwargs):
         Tk.__init__(self, *args, **kwargs)
-        container = Frame(self)
-
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        container.grid(column=0, row=0, padx=20, pady=10)
+
+        main_container = Frame(self)
+        main_container.grid(column=0, row=0, sticky='nesw')
+        main_container.grid_rowconfigure(0, weight=1)
+        main_container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
 
         for frame_class in (StartPage, ClaimPage, StancePage):
-            frame = frame_class(container, self)
+            frame = frame_class(main_container, self)
 
             self.frames[frame_class] = frame
 
-            frame.grid(row=0, column=0, sticky="nsew")
+            frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
 
         self.show_frame(StartPage)
 
@@ -32,6 +34,9 @@ class AnnotationGUI(Tk):
 class StartPage(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
         label = Label(self, text="Perform annotation for claim identification or stance prediction?", font=LARGE_FONT)
         label.grid(row=0, column=0, pady=10, columnspan=2)
 
@@ -44,12 +49,15 @@ class StartPage(Frame):
 
 class ClaimPage(Frame):
     def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.grid_rowconfigure((0, 1, 2, 3), weight=1)
+        self.grid_columnconfigure((0, 1, 2, 3), weight=1)
+
         self.controller = controller
         self.columns = 3
         self.raw_data = []
-        Frame.__init__(self, parent)
         label = Label(self, text="Claim annotator", font=LARGE_FONT)
-        label.grid(row=0, column=0, columnspan=self.columns)
+        label.grid(row=0, column=0, pady=10, columnspan=self.columns)
 
         self.data_button = Button(self, text="Load data", command=lambda: self.load_data())
         self.data_button.grid(row=1, column=0, columnspan=self.columns)

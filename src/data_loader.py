@@ -163,7 +163,7 @@ def load_annotation_data(data_type: str):
     :param data_type: the type of annotation data to be loaded, either "claim" or "stance"
     :return: a list of data points for annotation; either source tweets or source><reply pairs, depending on data_type
     """
-    path = os.path.join(os.path.abspath(__file__), '../../data/datasets/twitter/raw/unlabeled.txt')
+    path = os.path.join(os.path.abspath(__file__), '../../data/datasets/twitter/raw/unlabeled/unlabeled.txt')
     switch = {
         'claim': lambda: load_claim_data(path),
         'stance': lambda: load_stance_data(path)
