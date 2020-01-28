@@ -38,7 +38,7 @@ The project was developed using Python 3.6, and requires the following Python li
 * Torch
 
 ### Running code
-The project has five command-line interfaces, using which new data can be preprocessed for use in stance detection and
+The project has a number of command-line interfaces, using which new data can be preprocessed for use in stance detection and
 veracity prediction models, and new models can be trained, tested and saved as joblib files for future use.
 
 #### preprocess_stance.py
@@ -138,8 +138,11 @@ default values, and saves the generated model.
 * <b>--unverified_cast</b> How unverified rumours should be cast. Either 'true', 'false' or 'none', where 'none' leaves them as "unverified". 'false' used as default
 * <b>--save_model</b> Whether the generated model should be saved as a joblib file, set to True as default
 * <b>--model_name</b> The name of the generated joblib file containing the model, will be generated if not defined by user
+* <b>--remove_commenting</b> Whether comments with "commenting" SDQC value should be ignored in predicting veracity. Has been
+shown to increase performance in some cases, is false as default
+* <b>--hmm_version</b> Which HMM implementation is to be used, Gaussian HMM by default, "multinomial" can be entered as alternative
 
-Generating and saving a veracity determination model without using timestamps as features is done thus:
+Generating and saving a gaussian HMM veracity determination model without using timestamps as features is done thus:
 >`-m hmm_veracity timestamps=False`
 
 ##### Input data format
