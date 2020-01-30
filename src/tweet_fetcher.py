@@ -170,7 +170,7 @@ def popular_search():
             print('Scraped {} popular tweets. Latest tweet: {}'
                   .format(len(popular_tweets), tweet.created_at))
             # BREAK SHOULD BE REMOVED WHEN RUNNING FULL DOWNLOAD
-            break
+            # break
 
     for tweet_id, tweet in popular_tweets.items():
         source_id, username = navigate_to_source(tweet_id)

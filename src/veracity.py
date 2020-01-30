@@ -188,7 +188,7 @@ def main(argv):
     parser.add_argument('-ts', '--timestamps', default=True,
                         help='Include normalized timestamps of comments as features?')
 
-    subparsers = parser.add_subparsers(help='Choose whether to use new or sored data for veracity preciction')
+    subparsers = parser.add_subparsers(help='Choose whether to use new or stored data for veracity preciction')
 
     # Create parser for using new data for veracity prediction
     new_parser = subparsers.add_parser('new', help='Using new data for veracity prediction')

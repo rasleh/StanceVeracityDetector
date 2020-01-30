@@ -129,7 +129,7 @@ class HMM(BaseEstimator):
         as features.
         :param unverified_cast: how unverified rumours have been handled; is 'none' if they have not been cast as
         another class, or alternatively 'true' or 'false'
-        :return:
+        :return: accuracy for each class, overall accuracy, F1 micro and macro averaged, precision and recall
         """
         feature_vectors = [x[1] for x in data]
         predicted_labels = self.predict(feature_vectors)

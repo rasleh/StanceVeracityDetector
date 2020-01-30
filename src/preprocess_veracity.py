@@ -73,6 +73,16 @@ def write_preprocessed(data, out_path):
 
 
 def preprocess_dast_branch(include_timestamp, branch, sdqc_dict):
+    """
+    Takes an array of data points as input, extracts SDQC values from those inputs, generates relative timestamps if so
+    specified, and returns the extracted features for the given input array. Made specifically for the DAST dataset.
+
+    :param include_timestamp: whether timestamps should be included as features or not
+    :param branch: a branch from a tree-like conversational structure in the form of an array, with a data point at each
+    index, taken from the DAST dataset.
+    :param sdqc_dict: a dictionary from SDQC labels to integers
+    :return: an array of feature vectors
+    """
     if include_timestamp:
         if len(branch) is 1:
             branch_features = [[sdqc_dict[branch[0]['comment']['SDQC_Submission']], 0]]
@@ -96,11 +106,23 @@ def preprocess_dast_branch(include_timestamp, branch, sdqc_dict):
 
 
 def preprocess_branch(include_timestamp, branch, sdqc_dict):
+    """
+    Takes an array of data points as input, extracts SDQC values from those inputs, generates relative timestamps if so
+    specified, and returns the extracted features for the given input array.
+
+    :param include_timestamp: whether timestamps should be included as features or not
+    :param branch: a branch from a tree-like conversational structure in the form of an array, with a data point at each
+    index. Each data point consists of a json object, containing a number of required values - see code below.
+    :param sdqc_dict: a dictionary from SDQC labels to integers
+    :return: an array of feature vectors
+    """
+
     if include_timestamp:
         if len(branch) is 1:
             # Ignore unlabeled tuples
             if branch[0]['SDQC_Submission'] == 'Underspecified':
                 return
+            # Generate a feature vector for the single available datapoint, with timestamp 0
             branch_features = [[sdqc_dict[branch[0]['SDQC_Submission']], 0]]
         else:
             branch_features = []
@@ -162,6 +184,13 @@ def preprocess(database, data_path=False, write_out=False, include_timestamp=Fal
 
 
 if __name__ == '__main__':
+    """
+    Client for preprocessing data for veracity determination.
+
+    See project README for more in-depth description of command-line interfaces.
+
+    :param argv: user-specified arguments parsed from command line.
+    """
     argv = sys.argv[1:]
 
     parser = argparse.ArgumentParser(description='Preprocessing data for use in veracity prediction, defaults provided.')

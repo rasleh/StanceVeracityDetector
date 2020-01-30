@@ -184,15 +184,23 @@ within the branch, and running those stances through a pre-trained veracity pred
 of the branch source.
 
 The command-line interface loads two pre-trained models and a given dataset, splits that dataset into branches, determines
-stance followed by veracity for each branch and outputs results as print statements.
+stance followed by veracity for each branch and outputs results as print statements. The interface allows use of data already
+in a database, or an ID reference to a tweet, for which veracity is to be determined. Give "new" as parameter to access
+the "new data" interface, and "stored" to access the "stored data" interface.
 
-* <b>--data_path</b> Defines the full path to the raw data, generated based on <b>--data_type</b> if none is given
+Primary interface:
 * <b>--stance_model_path</b> Path to pre-trained stance detection model, model using optimal hyperparameters used as default
 * <b>--veracity_model_path</b> Path to pre-trained veracity determination model, strongest current HMM model is used as default,
 either model trained with or without timestamps chosen based on user input for <b>--timestamps</b>
-* <b>--data_type</b> Type of raw data, either 'twitter' or 'dast', 'twitter' is used as default
 * <b>--timestamps</b> Whether timestamps are to be used as features. If True, a veracity model trained using timestamps as
 features must be used as well. Set to True as default
+
+"New data" interface variables:
+* <b>--id</b> The ID of a tweet from the conversation, for which veracity will be determined
+
+"Stored data" interface variables:
+* <b>--data_path</b> Defines the full path to the raw data, generated based on <b>--data_type</b> if none is given
+* <b>--data_type</b> Type of raw data, either 'twitter' or 'dast', 'twitter' is used as default
 
 ##### Input data format
 Uses the same input data format as preprocess_stance.py. See subsection <i>input data format</i> in the section 
@@ -209,11 +217,34 @@ layers with a ReLU activation function.
 Located at /src/feature_extraction/, the folder contains scripts with helper methods for feature extraction, used for 
 preprocessing data for both the stance prediction and veracity determination models.  
 
-##### data_loader.py
-Located at /src/, the script contains methods for loading raw and preprocessed data used for training and testing stance
+##### data_loader.py and pheme_loader.py
+Located at /src/, the scripts contains methods for loading raw and preprocessed data used for training and testing stance
 detection and veracity determination models, as well as for loading new data directly into the veracity.py script. 
 
+##### tweet_fetcher.py
+Located at /src/, the script contains methods for accessing the Twitter API, scraping tweets and saving them to file in a
+file format compatible with the methods in the <i>data_loader.py</i> script, as well as for merging data files of this format.
+The script allows two different search types:
+* popular_search - Searches for tweets made from Denmark in Danish, with at least 10 replies, navigates to the source of the
+conversation tree in which each of these tweets are located, and scrapes said conversation tree
+* specific_search - Searches for tweets given a specific query, and scrapes all results of this search, along with responses
+to these tweets
+
+##### live_veracity.py
+Located at /src/, and makes use of <i>veracity.py</i> and <i>tweet_fetcher.py</i> to scrape popular tweets made
+from Denmark in Danish, featurize these, and perform stance detection and subsequent veracity prediction for the scraped
+tweets.
+
 ##### Dataset classes
+Located at /src/dataset_classes/ is <i>DAST_datasets.py</i> and <i>datasets.py</i>. The DataSet class found in datasets.py
+is used for representing collections of text data points, and performing operations on these collections. The Annotation 
+class is likewise found in datasets.py, and is used for representing said text data points. The DastDataset and DastAnnotation
+classes found in DAST_datasets.py inherit from the corresponding classes in datasets.py, with alterations allowing for
+the use of data from the DAST dataset. 
+
+##### labeling_doccano folder, annotation_gui.py and automation.sh
+All located at /src/, and contain current efforts into automation of data scraping and annotation, as well as construction of
+a GUI for annotation of scraped data for stance detection and veracity prediction. 
 
 ## Extending the project
 The project is set up to be extendable in two dimensions; adding new models, both for stance detection and veracity prediction,
