@@ -60,7 +60,7 @@ def find_early_late(branch_features, dataset):
 
 def predict_stance(feature_vector, clf):
     """
-    Predicts the stance in a given feature vector, using the classifier passed as argument, returning these as an array
+    Predicts the stances in a given feature matrix, using the classifier passed as argument, returning these as an array
 
     :param feature_vector: an array of features
     :param clf: a stance detection classifier
@@ -84,6 +84,15 @@ def predict_stance(feature_vector, clf):
 
 
 def predict_veracity(args, dataset, feature_vectors):
+    """
+    Predicts the veracities in a given feature matrix, using the veracity and stance classifiers passed as args, returning
+    the veracities as an array.
+
+    :param args: dict containing user specified arguments, including a "veracity_model_path" and "stance_model_path"
+    :param feature_vectors: a feature matrix
+    :param dataset: a member of the DataSet class from datasets.py, or child hereof
+    :return: array of class predictions
+    """
     num_to_stance = {0: 'Supporting', 1: 'Denying', 2: 'Querying', 3: 'Commenting'}
 
     hmm_clf = load(args.veracity_model_path)
@@ -141,6 +150,14 @@ def predict_veracity(args, dataset, feature_vectors):
 
 
 def veracity_stored(args, features):
+    """
+    Function for loading a dataset using data that has already been generated, supporting either "twitter" and "dast"
+    as data types.
+
+    :param args: dict containing user specified arguments, including "data_type" and "data_path"
+    :param features: a dict containing binary values determining inclusion of a number of features in the feature matrix
+    :return: a member of the DataSet class from datasets.py, or child hereof, and a feature matrix
+    """
     if args.data_path is None:
         if args.data_type == 'twitter':
             args.data_path = twitter_data_path
@@ -158,6 +175,14 @@ def veracity_stored(args, features):
 
 
 def veracity_new(args, features):
+    """
+    Scrapes a conversation thread from twitter given a user defined tweet ID, and generates a dataset containing this
+    conversation thread, along with a feature matrix for the thread
+
+    :param args: dict containing user specified arguments, including "id" and "data_type"
+    :param features: a dict containing binary values determining inclusion of a number of features in the feature matrix
+    :return: a member of the DataSet class from datasets.py, or child hereof, and a feature matrix
+    """
     args.data_type = 'twitter'
     new_data = tweet_fetcher.retrieve_conversation_thread(args.id)
     source_tweet_id = new_data[0]

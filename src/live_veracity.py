@@ -19,8 +19,17 @@ default_raw_twitter_path = os.path.join(current_path, Path('../../data/datasets/
 
 features = dict(text=False, lexicon=False, sentiment=False, pos=False, wembs=False, lstm_wembs=True)
 
+"""
+Script for scraping popular tweets in the Danish twitter-sphere, predicting stance and subsequent veracity for these 
+tweets, and saving potential rumours to a file.
+"""
 
+# TODO: Re-write as cmd line interface
 def live_veracity_twitter(argv):
+    """
+    Scrapes tweets using the tweet_fetcher.py script, predicts stance and subsequent veracity using the veracity.py
+    script and finally writes identified false tweets to file.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-smp', '--stance_model_path', default=stance_lstm_model,
                         help='Path to pre-trained stance detection model')
@@ -41,17 +50,3 @@ def live_veracity_twitter(argv):
             for result in veracity.predict_veracity(args, dataset, feature_vectors):
                 rumour_file.write(result)
                 rumour_file.flush()
-
-
-def get_raw_twitter_data_size(file_name):
-    with open(os.path.join(default_raw_twitter_path, file_name), 'r', encoding='UTF-8') as data_file:
-        tweet_count = 0
-        for line in data_file:
-            tweets = json.loads(line.split('\t')[1])
-            for tweet_id, tweet in tweets.items():
-                print(tweet['full_text'].replace('\n', ' '))
-            tweet_count += len(tweets)
-        print(tweet_count)
-
-
-get_raw_twitter_data_size('2019-12-05.txt')
